@@ -1,0 +1,266 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) session_start();
+require_once '../config/database.php';
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$db = (new Database())->connect();
+
+// calculate month/year from query or default to current
+$month = isset($_GET['m']) ? intval($_GET['m']) : date('n');
+$year  = isset($_GET['y']) ? intval($_GET['y']) : date('Y');
+
+// fetch holidays and leaves for the month
+$start = "$year-".str_pad($month,2,'0',STR_PAD_LEFT)."-01";
+$end = date('Y-m-t', strtotime($start));
+
+$holidays = $db->prepare("SELECT * FROM holidays WHERE holiday_date BETWEEN ? AND ?");
+$holidays->execute([$start, $end]);
+$hols = $holidays->fetchAll(PDO::FETCH_ASSOC);
+
+$leaves = $db->prepare("SELECT lr.*, e.first_name, e.last_name
+                       FROM leave_requests lr
+                       JOIN employees e ON lr.employee_id = e.id
+                       WHERE lr.status='approved' 
+                         AND lr.start_date <= ?
+                         AND lr.end_date >= ?");
+$leaves->execute([$end, $start]);
+$lv = $leaves->fetchAll(PDO::FETCH_ASSOC);
+
+// build map of date -> events
+$events = [];
+foreach($hols as $h) {
+    $events[$h['holiday_date']][] = ['type'=>'holiday','desc'=>$h['description']];
+}
+foreach($lv as $l) {
+    $d1 = $l['start_date'];
+    $d2 = $l['end_date'];
+    $current = $d1;
+    while($current <= $d2) {
+        if($current >= $start && $current <= $end) {
+            $events[$current][] = [
+                'type'=>'leave',
+                'desc'=> $l['first_name'].' '.$l['last_name'].' ('.$l['leave_type'].')'
+            ];
+        }
+        $current = date('Y-m-d', strtotime($current.' +1 day'));
+    }
+}
+
+function days_in_month($m,$y){return cal_days_in_month(CAL_GREGORIAN,$m,$y);} 
+$firstDow = date('N', strtotime("$year-$month-01"));
+$days = days_in_month($month,$year);
+
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Leave Calendar</title>
+    <link rel="stylesheet" href="../assets/css/styles.css">
+    <style>
+    table.calendar {border-collapse:collapse; width:100%; color: var(--text); border:1px solid var(--border);}
+    table.calendar td {border:1px solid var(--border); vertical-align:top; height:70px; padding:6px; overflow:hidden; color: var(--secondary-text); background: #ffffff;}
+    .day-number { font-size:14px; }
+    .day-dots { margin-top:6px; }
+    .holiday { background-color: #ffe4e6; }
+    .leave { background-color: #e0f2fe; }
+    .cell-normal { background: #ffffff; }
+    .cell-holiday { background-color: #ffe4e6; }
+    .calendar-nav a {
+        color: var(--primary);
+        text-decoration: none;
+        padding: 4px 10px;
+        margin-right: 16px;
+        background: var(--bg);
+        border-radius: 4px;
+        transition: 0.2s;
+        border: 1px solid var(--border);
+    }
+    .calendar-nav a:hover {
+        background: var(--border);
+        color: var(--primary-hover);
+    }
+    .calendar-container {
+        display: flex;
+        gap: 24px;
+        align-items: flex-start;
+    }
+    .calendar-main {
+        flex: 1;
+        min-width: 0;
+    }
+    .calendar-sidebar {
+        width: 300px;
+        flex-shrink: 0;
+    }
+    .calendar-summary-card {
+        margin-bottom: 16px;
+    }
+    .calendar-summary-card h4 {
+        margin: 0 0 12px 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text);
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    .legend-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .legend-indicator.approved { background-color: #22c55e; }
+    .legend-indicator.pending { background-color: #eab308; }
+    .legend-indicator.today { background-color: #2563eb; border: 2px solid #2563eb; background-color: transparent; }
+    .upcoming-item {
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 8px;
+        border-left: 4px solid;
+    }
+    .upcoming-item.approved { border-left-color: #22c55e; background-color: #f0fdf4; }
+    .upcoming-item.pending { border-left-color: #eab308; background-color: #fefce8; }
+    .upcoming-content strong {
+        display: block;
+        font-size: 14px;
+        color: var(--text);
+        margin-bottom: 4px;
+    }
+    .upcoming-details {
+        font-size: 12px;
+        color: var(--secondary-text);
+    }
+    .month-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .stat-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+    }
+    .stat-item:last-child {
+        border-bottom: none;
+    }
+    .stat-label {
+        font-size: 14px;
+        color: var(--text);
+    }
+    .stat-value {
+        font-size: 16px;
+        font-weight: 600;
+    }
+    .stat-value.approved { color: #22c55e; }
+    .stat-value.pending { color: #eab308; }
+    </style>
+</head>
+<body>
+<?php include __DIR__ . '/partials/sidebar.php'; ?>
+
+<div class="app-main">
+    <?php
+    $title = 'Leave Calendar';
+    $actions = [
+        '<a href="?m='.($month==1?12:$month-1).'&y='.($month==1?$year-1:$year).'" class="btn btn-ghost">&lt; Prev</a>',
+        '<a href="?m='.($month==12?1:$month+1).'&y='.($month==12?$year+1:$year).'" class="btn btn-ghost">Next &gt;</a>'
+    ];
+    include __DIR__ . '/partials/ui/page-header.php';
+    ?>
+
+    <div class="ui-card">
+        <div class="table-wrap">
+            <table class="calendar">
+        <tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>
+        <?php
+        $day=1; $dow=1;
+        echo "<tr>";
+        // empty cells before first day
+        for($i=1;$i<$firstDow;$i++){ echo "<td></td>"; $dow++; }
+        while($day<=$days) {
+            if($dow>7){ echo "</tr><tr>"; $dow=1; }
+            $date = sprintf("%04d-%02d-%02d",$year,$month,$day);
+            $cellClass='';
+            if(isset($events[$date])){
+                foreach($events[$date] as $e){
+                    if($e['type']=='holiday'){$cellClass='holiday'; break;}
+                }
+            }
+            echo "<td class='$cellClass' data-date='$date'><strong>$day</strong><br>";
+            if(isset($events[$date])){
+                $count = 0;
+                foreach($events[$date] as $e){
+                    $label = htmlspecialchars($e['desc']);
+                    $cls = ($e['type']=='holiday' ? 'cal-bullet evt-holiday' : ($e['type']=='leave' ? 'cal-bullet evt-leave' : 'cal-bullet evt-other'));
+                    echo "<span class='$cls' title='$label'></span>";
+                    $count++;
+                    if($count >= 3) break;
+                }
+                if(count($events[$date]) > 3){
+                    echo "<span style='font-size:12px;color:var(--secondary-text)'>+".(count($events[$date]) - 3)."</span>";
+                }
+            }
+            echo "</td>";
+            $day++; $dow++;
+        }
+        // trailing empty cells
+        while($dow<=7){ echo "<td></td>"; $dow++; }
+        echo "</tr>";
+        ?>
+            </table>
+        </div>
+    </div>
+
+    <div id="sidePanel" class="side-panel" aria-hidden="true">
+        <button id="closeSidePanel" style="float:right;background:transparent;border:none;color:var(--text);font-size:20px;cursor:pointer;">×</button>
+        <div id="panelContent"></div>
+    </div>
+
+    <script>
+        var _events = <?= json_encode($events); ?>;
+        
+        document.querySelectorAll('td[data-date]').forEach(function(td){
+            td.style.cursor = 'pointer';
+            td.addEventListener('click', function(){
+                var d = this.getAttribute('data-date');
+                var evs = _events[d] || [];
+                if(evs.length === 0) return;
+                var panel = document.getElementById('sidePanel');
+                var content = document.getElementById('panelContent');
+                var html = '<h3>' + d + '</h3><ul>';
+                evs.forEach(function(e){
+                    var cls = e.type == 'holiday' ? 'evt-holiday' : (e.type == 'leave' ? 'evt-leave' : 'evt-other');
+                    html += '<li><span class="cal-bullet ' + cls + '"></span> ' + (e.desc || '') + '</li>';
+                });
+                html += '</ul>';
+                content.innerHTML = html;
+                panel.classList.add('open');
+            });
+        });
+        
+        document.getElementById('closeSidePanel').addEventListener('click', function(){
+            document.getElementById('sidePanel').classList.remove('open');
+        });
+        
+        window.addEventListener('click', function(e){
+            var panel = document.getElementById('sidePanel');
+            // Close if clicking outside the panel (but not on calendar cells themselves)
+            if(!panel.contains(e.target) && !e.target.closest('td[data-date]')) {
+                panel.classList.remove('open');
+            }
+        });
+    </script>
+</div>
+</body>
+</html>

@@ -1,0 +1,31 @@
+Options -MultiViews
+RewriteEngine On
+RewriteBase /capstone/
+
+# Redirect direct requests for /views/*.php to clean routes.
+RewriteCond %{THE_REQUEST} \s/+capstone/views/([A-Za-z0-9_-]+)\.php(?:[?\s]|$) [NC]
+RewriteRule ^views/([A-Za-z0-9_-]+)\.php$ /capstone/$1 [R=302,L,NE]
+
+# Redirect direct requests for root-level route PHP aliases like /dashboard.php to /dashboard
+RewriteCond %{THE_REQUEST} \s/+capstone/([A-Za-z0-9_-]+)\.php(?:[?\s]|$) [NC]
+RewriteCond %{DOCUMENT_ROOT}/capstone/views/%1.php -f
+RewriteRule ^([A-Za-z0-9_-]+)\.php$ /capstone/$1 [R=302,L,NE]
+
+# Redirect /index.php to the app root.
+RewriteCond %{THE_REQUEST} \s/+capstone/index\.php(?:[?\s]|$) [NC]
+RewriteRule ^index\.php$ /capstone/ [R=302,L]
+
+# Existing files and directories should be served as-is.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# App root goes through the front index.
+RewriteRule ^$ index.php [L,QSA]
+
+# Clean routes map to matching view files by filename.
+RewriteCond %{DOCUMENT_ROOT}/capstone/views/$1.php -f
+RewriteRule ^([A-Za-z0-9_-]+)$ views/$1.php [L,QSA]
+
+# Everything else gets the friendly error page.
+RewriteRule ^(.+)$ views/error.php?requested=$1 [L,QSA]

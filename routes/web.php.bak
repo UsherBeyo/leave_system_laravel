@@ -1,0 +1,46 @@
+<?php
+
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LeaveApplicationController;
+use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\PlaceholderController;
+use Illuminate\Support\Facades\Route;
+
+Route::redirect('/', '/login');
+Route::redirect('/views/login.php', '/login');
+Route::redirect('/views/dashboard.php', '/dashboard');
+Route::redirect('/views/apply_leave.php', '/leave/apply');
+Route::redirect('/views/leave_requests.php', '/leave/requests');
+Route::redirect('/views/calendar.php', '/calendar');
+Route::redirect('/views/reports.php', '/reports');
+
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [LoginController::class, 'show'])->name('login');
+    Route::post('/login', [LoginController::class, 'login'])->name('login.perform');
+    Route::get('/register', PlaceholderController::class)->defaults('title', 'Register')->name('register');
+});
+
+Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('/leave/apply', [LeaveApplicationController::class, 'create'])->name('leave.apply');
+    Route::post('/leave/apply', [LeaveApplicationController::class, 'store'])->name('leave.apply.store');
+    Route::get('/api/calc-days', [LeaveApplicationController::class, 'calculate'])->name('api.calc-days');
+
+    Route::get('/leave/requests', [LeaveRequestController::class, 'index'])->name('leave.requests');
+    Route::post('/leave/requests/{leave}/action', [LeaveRequestController::class, 'action'])->name('leave.requests.action');
+
+    Route::get('/calendar', PlaceholderController::class)->defaults('title', 'Calendar')->name('calendar');
+    Route::get('/reports', PlaceholderController::class)->defaults('title', 'Reports')->name('reports');
+    Route::get('/employee-profile', PlaceholderController::class)->defaults('title', 'Employee Profile')->name('employee-profile');
+    Route::get('/change-password', PlaceholderController::class)->defaults('title', 'Change Password')->name('change-password');
+    Route::get('/manage-employees', PlaceholderController::class)->defaults('title', 'Manage Employees')->name('manage-employees');
+    Route::get('/manage-departments', PlaceholderController::class)->defaults('title', 'Manage Departments')->name('manage-departments');
+    Route::get('/holidays', PlaceholderController::class)->defaults('title', 'Holidays')->name('holidays');
+    Route::get('/manage-accruals', PlaceholderController::class)->defaults('title', 'Manage Accruals')->name('manage-accruals');
+    Route::get('/manage-leave-types', PlaceholderController::class)->defaults('title', 'Manage Leave Types')->name('manage-leave-types');
+    Route::get('/signatories-settings', PlaceholderController::class)->defaults('title', 'Signatories Settings')->name('signatories-settings');
+});
