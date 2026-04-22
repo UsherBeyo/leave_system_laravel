@@ -9,10 +9,13 @@ use App\Models\LeaveAttachment;
 use App\Models\LeaveBalanceLog;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -76,18 +79,37 @@ class LeaveWorkflowService
             return $leave;
         });
 
-        if ($status === 'approved') { $this->finalApprove($leave, null, '', []); $leave->refresh(); }
+        if ($status === 'approved') {
+            $this->finalApprove($leave, null, '', []);
+            $leave->refresh();
+        } else {
+            $this->sendSubmissionReviewEmail($leave);
+        }
+
         return $leave;
     }
 
     public function departmentHeadApprove(LeaveRequest $leave, int $userId, string $comments = ''): LeaveRequest
     {
-        $leave->status='pending'; $leave->workflow_status='pending_personnel'; $leave->department_head_user_id = $leave->department_head_user_id ?: $userId; $leave->department_head_comments = $comments; $leave->department_head_approved_at = now(); $leave->save(); return $leave;
+        $leave->status='pending';
+        $leave->workflow_status='pending_personnel';
+        $leave->department_head_user_id = $leave->department_head_user_id ?: $userId;
+        $leave->department_head_comments = $comments;
+        $leave->department_head_approved_at = now();
+        $leave->save();
+
+        $this->sendApplicantWorkflowEmail(
+            $leave,
+            'Your leave request moved to personnel review',
+            'Your {leave_type} leave request from {start_date} to {end_date} was approved by the Department Head and is now pending personnel review.'
+        );
+
+        return $leave;
     }
 
     public function finalApprove(LeaveRequest $leave, ?int $managerId, string $comments = '', array $options = []): LeaveRequest
     {
-        return DB::transaction(function () use ($leave, $managerId, $comments, $options) {
+        $approvedLeave = DB::transaction(function () use ($leave, $managerId, $comments, $options) {
             $leave->refresh();
             if (in_array((string) $leave->workflow_status, ['finalized'], true) || (string) $leave->status === 'approved') {
                 throw new RuntimeException('This leave request has already been finalized.');
@@ -112,32 +134,31 @@ class LeaveWorkflowService
                         $this->logLeaveBalanceChange($employee->id, -1 * $deductDays, 'deduction_force_leave_only', $leave->id);
                     } else {
                         $employee->annual_balance = max(0, (float) $employee->annual_balance - $deductDays);
-                        $vacLess = $deductDays;
-                        $this->logBudgetChange($employee->id, 'Vacational', $oldAnnual, $employee->annual_balance, 'deduction', $leave->id, 'Leave approved (mandatory/forced leave dual deduction - annual side)');
-                        $this->logLeaveBalanceChange($employee->id, -1 * $deductDays, 'deduction_annual_force_leave', $leave->id);
-                        $this->logLeaveBalanceChange($employee->id, -1 * $deductDays, 'deduction_force_leave', $leave->id);
+                        $this->logBudgetChange($employee->id, $typeName, $oldAnnual, $employee->annual_balance, 'deduction', $leave->id, 'Leave approved (mandatory/forced leave dual deduction - vacational side)');
+                        $this->logLeaveBalanceChange($employee->id, -1 * $deductDays, 'deduction_force_leave_dual', $leave->id);
                     }
+                } elseif ($typeKey === 'sick leave') {
+                    $employee->sick_balance = max(0, (float) $employee->sick_balance - $deductDays); $sickLess = $deductDays; $this->logBudgetChange($employee->id, $typeName, $oldSick, $employee->sick_balance, 'deduction', $leave->id, 'Leave approved');
+                } else {
+                    $employee->annual_balance = max(0, (float) $employee->annual_balance - $deductDays); $vacLess = $deductDays; $this->logBudgetChange($employee->id, $typeName, $oldAnnual, $employee->annual_balance, 'deduction', $leave->id, 'Leave approved');
                 }
-                elseif ($typeKey === 'sick leave') {
-                    $employee->sick_balance = max(0, (float) $employee->sick_balance - $deductDays);
-                    $sickLess = $deductDays;
-                    $this->logBudgetChange($employee->id, $typeName, $oldSick, $employee->sick_balance, 'deduction', $leave->id, 'Leave approved');
-                    $this->logLeaveBalanceChange($employee->id, -1 * $deductDays, 'deduction', $leave->id);
-                }
-                else {
-                    $employee->annual_balance = max(0, (float) $employee->annual_balance - $deductDays);
-                    $vacLess = $deductDays;
-                    $this->logBudgetChange($employee->id, $typeName, $oldAnnual, $employee->annual_balance, 'deduction', $leave->id, 'Leave approved');
-                    $this->logLeaveBalanceChange($employee->id, -1 * $deductDays, 'deduction', $leave->id);
-                }
-                $employee->save();
+                $employee->leave_balance = (float)$employee->annual_balance + (float)$employee->sick_balance; $employee->save();
             }
-            $leave->status='approved'; $leave->workflow_status='finalized'; $leave->approved_by=$managerId; $leave->manager_comments=$comments!==''?$comments:$leave->manager_comments; $leave->personnel_user_id=$managerId; $leave->personnel_comments=$comments!==''?$comments:$leave->personnel_comments; $leave->personnel_checked_at=now(); $leave->finalized_at=now(); $leave->print_status='pending_print'; $leave->snapshot_annual_balance=$employee->annual_balance; $leave->snapshot_sick_balance=$employee->sick_balance; $leave->snapshot_force_balance=$employee->force_balance; $leave->save();
+            $leave->status='approved'; $leave->workflow_status='finalized'; $leave->approved_by=$managerId; $leave->manager_comments=$comments; $leave->personnel_user_id=$managerId; $leave->personnel_comments=$comments; $leave->personnel_checked_at=now(); $leave->finalized_at=now(); $leave->print_status='pending_print'; $leave->save();
             $this->upsertLeaveRequestFormApprovalData($leave->id,$oldAnnual,$vacLess,(float)$employee->annual_balance,$oldSick,$sickLess,(float)$employee->sick_balance,$daysWithPay,$daysWithoutPay);
             return $leave;
         });
-    }
 
+        $this->sendApplicantWorkflowEmail(
+            $approvedLeave,
+            $managerId === null ? 'Your leave has been approved' : 'Your leave request approved',
+            $managerId === null
+                ? 'Your {leave_type} leave from {start_date} to {end_date} was auto-approved.'
+                : 'Your {leave_type} leave from {start_date} to {end_date} has been fully approved.'
+        );
+
+        return $approvedLeave;
+    }
 
     public function previewApprovalImpact(LeaveRequest $leave): array
     {
@@ -262,17 +283,171 @@ class LeaveWorkflowService
 
     public function reject(LeaveRequest $leave, int $userId, string $role, string $comments = ''): LeaveRequest
     {
-        if (in_array($role,['department_head','manager','admin'],true) && ($leave->workflow_status==='pending_department_head' || blank($leave->workflow_status) || $leave->workflow_status==='returned_by_personnel')) { $leave->workflow_status='rejected_department_head'; $leave->department_head_user_id=$leave->department_head_user_id?:$userId; $leave->department_head_comments=$comments; $leave->department_head_approved_at=now(); }
-        else { $leave->workflow_status='rejected_personnel'; $leave->personnel_user_id=$userId; $leave->personnel_comments=$comments; $leave->personnel_checked_at=now(); }
-        $leave->status='rejected'; $leave->approved_by=$userId; $leave->manager_comments=$comments; $leave->save(); return $leave;
+        $departmentHeadStage = in_array($role,['department_head','manager','admin'],true) && ($leave->workflow_status==='pending_department_head' || blank($leave->workflow_status) || $leave->workflow_status==='returned_by_personnel');
+        if ($departmentHeadStage) {
+            $leave->workflow_status='rejected_department_head';
+            $leave->department_head_user_id=$leave->department_head_user_id?:$userId;
+            $leave->department_head_comments=$comments;
+            $leave->department_head_approved_at=now();
+        } else {
+            $leave->workflow_status='rejected_personnel';
+            $leave->personnel_user_id=$userId;
+            $leave->personnel_comments=$comments;
+            $leave->personnel_checked_at=now();
+        }
+        $leave->status='rejected';
+        $leave->approved_by=$userId;
+        $leave->manager_comments=$comments;
+        $leave->save();
+
+        $this->sendApplicantWorkflowEmail(
+            $leave,
+            'Your leave request was rejected',
+            $departmentHeadStage
+                ? 'Your {leave_type} leave from {start_date} to {end_date} was rejected by the Department Head. Reason: {comments}'
+                : 'Your {leave_type} leave from {start_date} to {end_date} was rejected by Personnel. Reason: {comments}',
+            ['comments' => $comments !== '' ? $comments : 'No reason provided.']
+        );
+
+        return $leave;
     }
 
     public function returnToDepartmentHead(LeaveRequest $leave, int $userId, string $comments = ''): LeaveRequest
     {
-        $leave->status='pending'; $leave->workflow_status='returned_by_personnel'; $leave->personnel_user_id=$userId; $leave->personnel_comments=$comments; $leave->personnel_checked_at=now(); $leave->save(); return $leave;
+        $leave->status='pending';
+        $leave->workflow_status='returned_by_personnel';
+        $leave->personnel_user_id=$userId;
+        $leave->personnel_comments=$comments;
+        $leave->personnel_checked_at=now();
+        $leave->save();
+
+        $this->sendApplicantWorkflowEmail(
+            $leave,
+            'Your leave request was returned by personnel',
+            'Your {leave_type} leave from {start_date} to {end_date} was not finalized by personnel. Reason: {comments}',
+            ['comments' => $comments !== '' ? $comments : 'No reason provided.']
+        );
+
+        return $leave;
     }
 
-    public function markPrinted(LeaveRequest $leave): LeaveRequest { $leave->print_status='printed'; $leave->save(); return $leave; }
+    private function sendSubmissionReviewEmail(LeaveRequest $leave): void
+    {
+        $leave->loadMissing(['employee.user', 'leaveTypeRelation']);
+
+        $subject = '';
+        $body = '';
+        $recipients = [];
+
+        if ((string) $leave->workflow_status === 'pending_department_head') {
+            $recipients = $this->departmentHeadRecipientEmails($leave);
+            $subject = 'New leave request awaiting department-head approval';
+            $body = '{employee_name} filed {leave_type} leave from {start_date} to {end_date} and it is waiting for department-head approval.';
+        } elseif ((string) $leave->workflow_status === 'pending_personnel') {
+            $recipients = $this->personnelRecipientEmails();
+            $subject = 'New leave request awaiting personnel review';
+            $body = '{employee_name} filed {leave_type} leave from {start_date} to {end_date} and it is now pending personnel review.';
+        }
+
+        if ($subject === '' || $body === '' || empty($recipients)) {
+            return;
+        }
+
+        $body = $this->replaceWorkflowTokens($leave, $body);
+        foreach ($recipients as $email) {
+            $this->sendEmailSafely($email, $subject, $body, $leave->id);
+        }
+    }
+
+    private function sendApplicantWorkflowEmail(LeaveRequest $leave, string $subject, string $bodyTemplate, array $extraTokens = []): void
+    {
+        $leave->loadMissing(['employee.user', 'leaveTypeRelation']);
+        $email = trim((string) ($leave->employee?->user?->email ?? ''));
+        if ($email === '') {
+            return;
+        }
+
+        $body = $this->replaceWorkflowTokens($leave, $bodyTemplate, $extraTokens);
+        $this->sendEmailSafely($email, $subject, $body, $leave->id);
+    }
+
+    private function replaceWorkflowTokens(LeaveRequest $leave, string $bodyTemplate, array $extraTokens = []): string
+    {
+        $leave->loadMissing(['employee.user', 'leaveTypeRelation']);
+        $employeeName = trim((string) ($leave->employee?->full_name ?? ''));
+        if ($employeeName === '') {
+            $employeeName = 'The employee';
+        }
+
+        $mappedExtras = [];
+        foreach ($extraTokens as $key => $value) {
+            $mappedExtras['{'.$key.'}'] = (string) $value;
+        }
+
+        $tokens = array_merge([
+            '{employee_name}' => $employeeName,
+            '{leave_type}' => (string) $leave->leave_type_name,
+            '{start_date}' => $leave->start_date?->toDateString() ?: (string) $leave->start_date,
+            '{end_date}' => $leave->end_date?->toDateString() ?: (string) $leave->end_date,
+            '{comments}' => '',
+        ], $mappedExtras);
+
+        return strtr($bodyTemplate, $tokens);
+    }
+
+    private function departmentHeadRecipientEmails(LeaveRequest $leave): array
+    {
+        $emails = [];
+        $userId = (int) ($leave->department_head_user_id ?: 0);
+        if ($userId > 0) {
+            $email = trim((string) User::query()->whereKey($userId)->value('email'));
+            if ($email !== '') {
+                $emails[] = $email;
+            }
+        }
+
+        if (empty($emails) && $leave->department_id) {
+            $assignment = DepartmentHeadAssignment::query()->where('department_id', $leave->department_id)->where('is_active', 1)->first();
+            if ($assignment) {
+                $headEmployee = Employee::query()->with('user')->find($assignment->employee_id);
+                $email = trim((string) ($headEmployee?->user?->email ?? ''));
+                if ($email !== '') {
+                    $emails[] = $email;
+                }
+            }
+        }
+
+        return array_values(array_unique($emails));
+    }
+
+    private function personnelRecipientEmails(): array
+    {
+        return User::query()
+            ->whereIn('role', ['personnel', 'hr', 'admin'])
+            ->where('is_active', 1)
+            ->pluck('email')
+            ->map(fn ($email) => trim((string) $email))
+            ->filter(fn ($email) => $email !== '')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function sendEmailSafely(string $to, string $subject, string $body, ?int $leaveId = null): void
+    {
+        try {
+            Mail::raw($body, function ($message) use ($to, $subject) {
+                $message->to($to)->subject($subject);
+            });
+        } catch (\Throwable $e) {
+            Log::warning('Leave workflow email was not sent.', [
+                'leave_request_id' => $leaveId,
+                'to' => $to,
+                'subject' => $subject,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
 
     private function guardBalance(Employee $employee, LeaveType $leaveType, array $policy, float $days, bool $forceOnly): void
     {
