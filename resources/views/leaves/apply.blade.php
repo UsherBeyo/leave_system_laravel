@@ -65,6 +65,77 @@
     font-weight:600;
     color:#1f2937
 }
+.attachment-drop-zone{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    padding:18px;
+    border:1px dashed #bfd0ee;
+    border-radius:18px;
+    background:#f8fbff;
+    cursor:pointer;
+    transition:border-color .18s ease, box-shadow .18s ease, background-color .18s ease
+}
+.attachment-drop-zone:hover,
+.attachment-drop-zone.drag-over{
+    border-color:#2563eb;
+    background:#eff6ff;
+    box-shadow:0 0 0 3px rgba(37,99,235,.10)
+}
+.attachment-drop-zone strong{
+    display:block;
+    color:#1f2937;
+    font-size:14px;
+    margin-bottom:4px
+}
+.attachment-drop-zone span{
+    display:block;
+    color:#64748b;
+    font-size:13px;
+    line-height:1.45
+}
+.attachment-selected-list{
+    display:grid;
+    gap:8px;
+    margin-top:10px
+}
+.attachment-selected-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px 12px;
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+    background:#fff
+}
+.attachment-selected-item span{
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    color:#334155;
+    font-weight:600
+}
+.attachment-remove-btn{
+    border:none;
+    border-radius:999px;
+    background:#fee2e2;
+    color:#991b1b;
+    cursor:pointer;
+    font-weight:700;
+    min-width:28px;
+    height:28px;
+    line-height:28px;
+    padding:0 8px
+}
+.attachment-limit-note{
+    color:#64748b;
+    font-size:12px;
+    line-height:1.45;
+    margin-top:8px
+}
 .supporting-doc-flags{
     display:grid;
     grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
@@ -98,6 +169,10 @@
     .supporting-doc-grid,
     .supporting-doc-flags{
         grid-template-columns:1fr
+    }
+    .attachment-drop-zone{
+        align-items:stretch;
+        flex-direction:column
     }
 }
 </style>
@@ -151,7 +226,7 @@
             <div class="ui-card" style="margin-bottom:0;">
                 <h3 style="margin-top:0;">Supporting documents</h3>
                 <div id="document_checklist" class="supporting-doc-grid"></div>
-                <div class="field"><label>Attachments (up to 5 files, 10MB each)</label><input type="file" id="attachments" name="attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png,.webp"><div class="help-text">Upload the actual file required by the selected leave type. Selecting a supporting-document checkbox alone is not enough when the leave rule requires uploaded attachment(s).</div><div id="attachment_file_list" class="request-chip-list" style="margin-top:10px;"></div></div>
+                <div class="field"><label>Attachments (up to 5 files, 10MB each)</label><div id="attachment_drop_zone" class="attachment-drop-zone" tabindex="0" role="button" aria-label="Add supporting document attachments"><div><strong>Drop files here or add files one by one</strong><span>You may select multiple files at once or click Add files repeatedly until all required documents are included.</span></div><button type="button" class="btn btn-secondary" id="attachment_add_btn">Add files</button></div><input type="file" id="attachments" name="attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none;"><div class="help-text">Upload the actual file required by the selected leave type. Selecting a supporting-document checkbox alone is not enough when the leave rule requires uploaded attachment(s).</div><div class="attachment-limit-note">Allowed file types: PDF, JPG, JPEG, PNG, WEBP. Maximum: 5 files, 10MB each.</div><div id="attachment_file_list" class="attachment-selected-list"></div></div>
                 <div class="supporting-doc-flags">
                     <label class="inline-check"><input type="checkbox" name="medical_certificate_attached" value="1" @checked(old('medical_certificate_attached'))> Medical certificate attached</label>
                     <label class="inline-check"><input type="checkbox" name="affidavit_attached" value="1" @checked(old('affidavit_attached'))> Affidavit attached</label>
@@ -167,9 +242,52 @@
 @endsection
 @push('scripts')
 <script>
-const leavePolicyMap=@json($policyMap),leaveType=document.getElementById('leave_type_id'),filingDate=document.getElementById('filing_date'),startDate=document.getElementById('start_date'),endDate=document.getElementById('end_date'),attachmentInput=document.getElementById('attachments'),attachmentFileList=document.getElementById('attachment_file_list'),daysValue=document.getElementById('days_value'),calendarDaysValue=document.getElementById('calendar_days_value'),weekendDaysValue=document.getElementById('weekend_days_value'),holidayDaysValue=document.getElementById('holiday_days_value'),ruleList=document.getElementById('rule_list'),ruleWarning=document.getElementById('rule_warning'),subtypeWrap=document.getElementById('subtype_wrap'),subtypeLabel=document.getElementById('subtype_label'),subtypeSelect=document.getElementById('leave_subtype'),documentChecklist=document.getElementById('document_checklist');
+const leavePolicyMap=@json($policyMap),leaveType=document.getElementById('leave_type_id'),filingDate=document.getElementById('filing_date'),startDate=document.getElementById('start_date'),endDate=document.getElementById('end_date'),attachmentInput=document.getElementById('attachments'),attachmentFileList=document.getElementById('attachment_file_list'),attachmentDropZone=document.getElementById('attachment_drop_zone'),attachmentAddBtn=document.getElementById('attachment_add_btn'),daysValue=document.getElementById('days_value'),calendarDaysValue=document.getElementById('calendar_days_value'),weekendDaysValue=document.getElementById('weekend_days_value'),holidayDaysValue=document.getElementById('holiday_days_value'),ruleList=document.getElementById('rule_list'),ruleWarning=document.getElementById('rule_warning'),subtypeWrap=document.getElementById('subtype_wrap'),subtypeLabel=document.getElementById('subtype_label'),subtypeSelect=document.getElementById('leave_subtype'),documentChecklist=document.getElementById('document_checklist');
+const maxAttachmentFiles=5, selectedAttachments=new DataTransfer();
 function currentRule(){return leavePolicyMap[leaveType.value]||null} function setWrap(id,visible){const el=document.getElementById(id); if(!el)return; el.style.display=visible?'flex':'none'}
-function renderAttachmentList(){ if(!attachmentInput||!attachmentFileList) return; attachmentFileList.innerHTML=''; Array.from(attachmentInput.files||[]).forEach(file=>{ const chip=document.createElement('span'); chip.className='request-chip request-chip-muted'; chip.textContent=file.name; attachmentFileList.appendChild(chip); }); }
+function attachmentSignature(file){ return [file.name,file.size,file.lastModified].join('|'); }
+function syncAttachmentInput(){ if(attachmentInput) attachmentInput.files=selectedAttachments.files; }
+function addAttachmentFiles(files){
+    if(!files) return;
+    const existing=new Set(Array.from(selectedAttachments.files||[]).map(attachmentSignature));
+    Array.from(files).forEach(file=>{
+        if(!file || selectedAttachments.files.length>=maxAttachmentFiles) return;
+        const signature=attachmentSignature(file);
+        if(existing.has(signature)) return;
+        selectedAttachments.items.add(file);
+        existing.add(signature);
+    });
+    syncAttachmentInput();
+    renderAttachmentList();
+    updateRuleWarning();
+}
+function removeAttachmentAt(removeIndex){
+    const replacement=new DataTransfer();
+    Array.from(selectedAttachments.files||[]).forEach((file,index)=>{ if(index!==removeIndex) replacement.items.add(file); });
+    selectedAttachments.items.clear();
+    Array.from(replacement.files||[]).forEach(file=>selectedAttachments.items.add(file));
+    syncAttachmentInput();
+    renderAttachmentList();
+    updateRuleWarning();
+}
+function renderAttachmentList(){
+    if(!attachmentInput||!attachmentFileList) return;
+    attachmentFileList.innerHTML='';
+    Array.from(attachmentInput.files||[]).forEach((file,index)=>{
+        const item=document.createElement('div');
+        item.className='attachment-selected-item';
+        const name=document.createElement('span');
+        name.textContent=file.name;
+        const remove=document.createElement('button');
+        remove.type='button';
+        remove.className='attachment-remove-btn';
+        remove.textContent='Remove';
+        remove.addEventListener('click',()=>removeAttachmentAt(index));
+        item.appendChild(name);
+        item.appendChild(remove);
+        attachmentFileList.appendChild(item);
+    });
+}
 function renderRuleUI(){
     const rule=currentRule();
     ruleList.innerHTML='';
@@ -232,6 +350,6 @@ function renderRuleUI(){
 }
 function updateRuleWarning(extraMessage=''){ const rule=currentRule(); const warnings=[]; if(extraMessage) warnings.push(extraMessage); if(rule&&rule.min_days_notice&&filingDate?.value&&startDate?.value){ const filing=new Date(filingDate.value+'T00:00:00'); const start=new Date(startDate.value+'T00:00:00'); const diff=Math.floor((start-filing)/(1000*60*60*24)); if(diff < rule.min_days_notice){ warnings.push(`This leave must be filed at least ${rule.min_days_notice} day(s) before the start date.`); } } if(rule&&rule.required_doc_count&&attachmentInput){ const uploaded=Array.from(attachmentInput.files||[]).filter(file=>file && file.name).length; if(uploaded < rule.required_doc_count){ warnings.push(`Upload at least ${rule.required_doc_count} supporting document file(s) for this leave type.`); } } ruleWarning.textContent=warnings.join(' '); ruleWarning.style.display=warnings.length?'block':'none'; }
 async function recalcDays(){const start=startDate.value,end=endDate.value; if(!start||!end){ updateRuleWarning(); return; } const params=new URLSearchParams({start_date:start,end_date:end}); const response=await fetch(`{{ route('api.calc-days') }}?${params.toString()}`,{headers:{'X-Requested-With':'XMLHttpRequest'}}); const data=await response.json(); daysValue.textContent=data.days??0; calendarDaysValue.textContent=data.calendar_days??0; weekendDaysValue.textContent=data.weekend_days??0; holidayDaysValue.textContent=data.holiday_days??0; updateRuleWarning(data.message||''); }
-leaveType.addEventListener('change',renderRuleUI); filingDate.addEventListener('change',()=>{ updateRuleWarning(); recalcDays(); }); startDate.addEventListener('change',recalcDays); endDate.addEventListener('change',recalcDays); attachmentInput?.addEventListener('change',()=>{ renderAttachmentList(); updateRuleWarning(); }); window.addEventListener('load',()=>{renderRuleUI(); renderAttachmentList(); recalcDays()});
+leaveType.addEventListener('change',renderRuleUI); filingDate.addEventListener('change',()=>{ updateRuleWarning(); recalcDays(); }); startDate.addEventListener('change',recalcDays); endDate.addEventListener('change',recalcDays); attachmentAddBtn?.addEventListener('click',(event)=>{ event.stopPropagation(); attachmentInput?.click(); }); attachmentDropZone?.addEventListener('click',()=>attachmentInput?.click()); attachmentDropZone?.addEventListener('keydown',(event)=>{ if(event.key==='Enter'||event.key===' '){ event.preventDefault(); attachmentInput?.click(); } }); attachmentDropZone?.addEventListener('dragover',(event)=>{ event.preventDefault(); attachmentDropZone.classList.add('drag-over'); }); attachmentDropZone?.addEventListener('dragleave',()=>attachmentDropZone.classList.remove('drag-over')); attachmentDropZone?.addEventListener('drop',(event)=>{ event.preventDefault(); attachmentDropZone.classList.remove('drag-over'); addAttachmentFiles(event.dataTransfer?.files||[]); }); attachmentInput?.addEventListener('change',()=>{ addAttachmentFiles(attachmentInput.files||[]); attachmentInput.value=''; syncAttachmentInput(); }); window.addEventListener('load',()=>{renderRuleUI(); renderAttachmentList(); recalcDays()});
 </script>
 @endpush

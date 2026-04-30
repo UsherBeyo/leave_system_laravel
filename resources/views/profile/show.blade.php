@@ -3,7 +3,7 @@
 @php
     $actions = [];
     $actions[] = '<a href="'.route('employee-profile', ['employee' => $employeeProfile->id, 'export' => 'history']).'" class="btn btn-secondary">Export History CSV</a>';
-    $actions[] = '<a href="'.route('employee-profile', ['employee' => $employeeProfile->id, 'export' => 'leave_card']).'" class="btn btn-ghost">Export Leave Card CSV</a>';
+    $actions[] = '<a href="'.route('employee-profile', ['employee' => $employeeProfile->id, 'export' => 'leave_card']).'" class="btn btn-ghost">Export Leave Card Excel</a>';
     $actions[] = '<a href="'.route('reports', ['type' => 'leave_card', 'employee_id' => $employeeProfile->id]).'" class="btn btn-ghost">Open Leave Card Report</a>';
     $profileImageUrl = $employeeProfile->profile_pic
         ? asset(ltrim(preg_replace('#^\.\./#', '', (string) $employeeProfile->profile_pic), '/'))
@@ -35,6 +35,32 @@
 .profile-image-modal-figure img{max-width:100%;max-height:52vh;border-radius:16px;object-fit:contain}
 .profile-image-modal-caption{font-size:13px;color:var(--muted);margin-bottom:12px;text-align:center}
 .profile-image-modal-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.profile-admin-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+.profile-admin-actions .btn{white-space:normal}
+#balanceModal.modal,#historyModal.modal,#undertimeModal.modal{background:rgba(15,23,42,.58);padding:22px;backdrop-filter:blur(3px);z-index:4200}
+.profile-history-modal-content{position:relative;width:min(780px,calc(100vw - 28px));max-width:none;padding:0 !important;border:1px solid rgba(226,232,240,.95);border-radius:26px;background:#fff;box-shadow:0 28px 80px rgba(15,23,42,.28);overflow:hidden}
+#historyModal .profile-history-modal-content{width:min(960px,calc(100vw - 28px))}
+.profile-history-modal-content .modal-close{top:18px;right:18px;width:38px;height:38px;border-radius:999px;background:rgba(255,255,255,.92);border:1px solid rgba(226,232,240,.9);box-shadow:0 8px 20px rgba(15,23,42,.12);display:inline-flex;align-items:center;justify-content:center;line-height:1;font-size:24px;color:#334155;z-index:3;transition:transform .18s ease,background .18s ease,color .18s ease}
+.profile-history-modal-content .modal-close:hover{transform:rotate(90deg);background:#eff6ff;color:#1d4ed8}
+.profile-history-modal-content > h3{margin:0 !important;padding:26px 72px 6px 28px;background:linear-gradient(135deg,#eff6ff 0%,#f8fafc 55%,#ffffff 100%);font-size:24px;line-height:1.2;color:#0f172a;font-weight:800;letter-spacing:-.02em}
+.profile-history-modal-content > h3::before{content:'';display:inline-block;width:10px;height:28px;border-radius:999px;background:linear-gradient(180deg,#2563eb,#16a34a);vertical-align:-7px;margin-right:12px;box-shadow:0 8px 18px rgba(37,99,235,.22)}
+.profile-history-modal-content > .profile-modal-note{margin:0 !important;padding:0 72px 24px 50px;background:linear-gradient(135deg,#eff6ff 0%,#f8fafc 55%,#ffffff 100%);font-size:13px;color:#64748b;line-height:1.55;border-bottom:1px solid #e2e8f0}
+.profile-history-modal-content > form{padding:24px 28px 24px;background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%)}
+.profile-modal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:15px 16px}
+.profile-modal-grid .field,.profile-history-modal-content .field{margin:0}
+.profile-history-modal-content .field label{display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.055em;color:#475569;margin-bottom:7px}
+.profile-history-modal-content input,.profile-history-modal-content select{width:100%;min-height:44px;border:1px solid #cbd5e1;border-radius:14px;background:#fff;padding:10px 13px;color:#0f172a;transition:border-color .18s ease,box-shadow .18s ease,background .18s ease}
+.profile-history-modal-content input:focus,.profile-history-modal-content select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.12);background:#fff}
+.profile-modal-note{font-size:13px;color:var(--muted);margin:8px 0 14px;line-height:1.5}
+.profile-history-modal-content form .profile-modal-note{padding:12px 14px;margin:12px 0 0;border:1px solid #dbeafe;border-radius:14px;background:#eff6ff;color:#475569}
+.profile-modal-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:22px;padding-top:18px;border-top:1px solid #e2e8f0}
+.profile-modal-actions .btn{min-height:42px;border-radius:12px}
+.profile-modal-divider{border:0;border-top:1px dashed #cbd5e1;margin:20px 0}
+#historyUndertimeFields{border:1px solid #bfdbfe;border-radius:18px;background:linear-gradient(180deg,#eff6ff,#ffffff);padding:16px;margin-top:16px !important}
+#historyUndertimeFields > strong{display:inline-flex;align-items:center;gap:8px;margin-bottom:10px;color:#1e3a8a;font-size:14px;text-transform:uppercase;letter-spacing:.04em}
+#historyUndertimeFields > strong::before{content:'';width:9px;height:9px;border-radius:999px;background:#2563eb}
+.profile-history-modal-content .inline-check{display:inline-flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:999px;background:#fff;font-weight:700;color:#334155}
+.profile-history-modal-content .inline-check input{width:17px !important;height:17px !important;min-height:17px;margin:0 !important;accent-color:#2563eb}
 @media (max-width: 900px){
     .employee-profile-main{grid-template-columns:1fr}
     .employee-profile-avatar-wrap{align-items:center}
@@ -44,8 +70,8 @@
 @media (max-width: 640px){
     .employee-profile-card,.employee-profile-section{padding:18px}
     .employee-profile-name{font-size:30px}
-    .employee-profile-meta-grid,.employee-profile-balance-grid{grid-template-columns:1fr}
-    .profile-image-modal-actions > *{flex:1 1 100%}
+    .employee-profile-meta-grid,.employee-profile-balance-grid,.profile-modal-grid{grid-template-columns:1fr}
+    .profile-image-modal-actions > *, .profile-modal-actions > *{flex:1 1 100%}
 }
 </style>
 @endpush
@@ -77,22 +103,10 @@
                 <h2 class="employee-profile-name">{{ $employeeProfile->fullName() }}</h2>
                 <div class="employee-profile-email">{{ $employeeProfile->user?->email ?: '—' }}</div>
                 <div class="employee-profile-meta-grid">
-                    <div class="employee-profile-meta-card">
-                        <span class="employee-profile-meta-label">Department</span>
-                        <span class="employee-profile-meta-value">{{ $employeeProfile->department ?: '—' }}</span>
-                    </div>
-                    <div class="employee-profile-meta-card">
-                        <span class="employee-profile-meta-label">Position</span>
-                        <span class="employee-profile-meta-value">{{ $employeeProfile->position ?: '—' }}</span>
-                    </div>
-                    <div class="employee-profile-meta-card">
-                        <span class="employee-profile-meta-label">Entrance to Duty</span>
-                        <span class="employee-profile-meta-value">{{ optional($employeeProfile->entrance_to_duty)->format('F d, Y') ?: '—' }}</span>
-                    </div>
-                    <div class="employee-profile-meta-card">
-                        <span class="employee-profile-meta-label">Status</span>
-                        <span class="employee-profile-meta-value">{{ $employeeProfile->status ?: '—' }}</span>
-                    </div>
+                    <div class="employee-profile-meta-card"><span class="employee-profile-meta-label">Department</span><span class="employee-profile-meta-value">{{ $employeeProfile->department ?: '—' }}</span></div>
+                    <div class="employee-profile-meta-card"><span class="employee-profile-meta-label">Position</span><span class="employee-profile-meta-value">{{ $employeeProfile->position ?: '—' }}</span></div>
+                    <div class="employee-profile-meta-card"><span class="employee-profile-meta-label">Entrance to Duty</span><span class="employee-profile-meta-value">{{ optional($employeeProfile->entrance_to_duty)->format('F d, Y') ?: '—' }}</span></div>
+                    <div class="employee-profile-meta-card"><span class="employee-profile-meta-label">Status</span><span class="employee-profile-meta-value">{{ $employeeProfile->status ?: '—' }}</span></div>
                 </div>
             </div>
         </div>
@@ -120,6 +134,19 @@
             @endforeach
         </div>
     </div>
+
+    @if($canManageProfileHistory)
+        <div class="employee-profile-section" style="padding:22px;">
+            <div class="page-header" style="margin-bottom:12px;">
+                <div class="page-title-group"><h3 class="mt-0 mb-0">Admin Actions</h3><p class="page-subtitle">Reference-style profile tools for balance correction, historical entries, and undertime recording.</p></div>
+            </div>
+            <div class="profile-admin-actions">
+                <button type="button" class="btn btn-primary" data-open="balanceModal">Update Balances</button>
+                <button type="button" class="btn btn-secondary" data-open="historyModal">Add Leave History Entry</button>
+                <button type="button" class="btn btn-ghost" data-open="undertimeModal">Record Undertime</button>
+            </div>
+        </div>
+    @endif
 
     <div class="employee-profile-section" style="padding:22px;">
         <div class="page-header" style="margin-bottom:16px;"><div class="page-title-group"><h3 class="mt-0 mb-0">Leave History</h3><p class="page-subtitle">Latest leave requests and their recorded balance snapshots.</p></div></div>
@@ -226,6 +253,100 @@
         @endif
     </div>
 </div>
+
+@if($canManageProfileHistory)
+<div id="balanceModal" class="modal" style="display:none;">
+    <div class="modal-content profile-history-modal-content">
+        <span class="modal-close" data-close="balanceModal">&times;</span>
+        <h3 style="margin-top:0;">Update Balances</h3>
+        <p class="profile-modal-note">Manual adjustments update current balances and create budget-history entries like the reference system.</p>
+        <form method="POST" action="{{ route('employee-profile.balances.update') }}">
+            @csrf
+            <input type="hidden" name="employee_id" value="{{ $employeeProfile->id }}">
+            <div class="profile-modal-grid">
+                <div class="field"><label>Vacational Balance</label><input type="number" step="0.001" name="annual_balance" value="{{ number_format((float)$employeeProfile->annual_balance,3,'.','') }}" required></div>
+                <div class="field"><label>Sick Balance</label><input type="number" step="0.001" name="sick_balance" value="{{ number_format((float)$employeeProfile->sick_balance,3,'.','') }}" required></div>
+                <div class="field"><label>Force Balance</label><input type="number" step="0.001" name="force_balance" value="{{ number_format((float)$employeeProfile->force_balance,3,'.','') }}" required></div>
+            </div>
+            <div class="profile-modal-actions">
+                <button type="submit" class="btn btn-primary">Update balances</button>
+                <button type="button" class="btn btn-secondary" data-close="balanceModal">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="historyModal" class="modal" style="display:none;">
+    <div class="modal-content profile-history-modal-content">
+        <span class="modal-close" data-close="historyModal">&times;</span>
+        <h3 style="margin-top:0;">Add Leave History Entry</h3>
+        <p class="profile-modal-note">Adds historical leave, accrual, or undertime records without changing current balances, except for ledger/history records required by the reference behavior.</p>
+        <form method="POST" action="{{ route('employee-profile.history.store') }}">
+            @csrf
+            <input type="hidden" name="employee_id" value="{{ $employeeProfile->id }}">
+            <div class="field">
+                <label>Leave Type</label>
+                <select id="historyType" name="leave_type_id" required>
+                    <option value="0">Vacational Accrual Earned</option>
+                    <option value="-1">Undertime</option>
+                    @foreach($leaveTypes as $leaveType)
+                        <option value="{{ $leaveType->id }}">{{ $leaveType->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="profile-modal-grid">
+                <div class="field"><label>Earning Amount</label><input id="historyEarningAmount" type="number" step="0.001" name="earning_amount" value=""></div>
+                <div class="field"><label>Start Date</label><input type="date" name="start_date" required></div>
+                <div class="field"><label>End Date</label><input type="date" name="end_date" required></div>
+                <div class="field"><label>Total Days</label><input id="historyTotalDays" type="number" step="0.001" name="total_days" required></div>
+            </div>
+            <div id="historyUndertimeFields" style="display:none;margin-top:12px;">
+                <strong>Undertime Details</strong>
+                <div class="profile-modal-grid" style="margin-top:10px;">
+                    <div class="field"><label>Hours</label><input type="number" step="1" name="undertime_hours" value="0" min="0"></div>
+                    <div class="field"><label>Minutes</label><input type="number" step="1" name="undertime_minutes" value="0" min="0" max="60"></div>
+                </div>
+                <label class="inline-check" style="margin-top:8px;"><input type="checkbox" name="undertime_with_pay" value="1"> With pay</label>
+                <p class="profile-modal-note">Deduction uses the undertime chart. Historical undertime does not mutate the current balance.</p>
+            </div>
+            <div class="field" style="margin-top:12px;"><label>Comments</label><input type="text" name="reason"></div>
+            <hr class="profile-modal-divider">
+            <p class="profile-modal-note">Optional: supply balances that were available at the time of this historical entry. Leave blank to use the employee's current balances.</p>
+            <div class="profile-modal-grid">
+                <div class="field"><label>Vacational balance at time</label><input type="number" step="0.001" name="snapshot_annual_balance" value=""></div>
+                <div class="field"><label>Sick balance at time</label><input type="number" step="0.001" name="snapshot_sick_balance" value=""></div>
+                <div class="field"><label>Force balance at time</label><input type="number" step="0.001" name="snapshot_force_balance" value=""></div>
+            </div>
+            <div class="profile-modal-actions">
+                <button type="submit" class="btn btn-primary">Add history entry</button>
+                <button type="button" class="btn btn-secondary" data-close="historyModal">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="undertimeModal" class="modal" style="display:none;">
+    <div class="modal-content profile-history-modal-content">
+        <span class="modal-close" data-close="undertimeModal">&times;</span>
+        <h3 style="margin-top:0;">Record Undertime</h3>
+        <p class="profile-modal-note">This applies the undertime deduction to the current Vacational Balance and logs the deduction.</p>
+        <form method="POST" action="{{ route('employee-profile.undertime.store') }}">
+            @csrf
+            <input type="hidden" name="employee_id" value="{{ $employeeProfile->id }}">
+            <div class="profile-modal-grid">
+                <div class="field"><label>Date</label><input type="date" name="date" required></div>
+                <div class="field"><label>Hours</label><input type="number" step="1" name="hours" value="0" min="0"></div>
+                <div class="field"><label>Minutes</label><input type="number" step="1" name="undertime_minutes" value="0" min="0" max="60"></div>
+            </div>
+            <label class="inline-check" style="margin-top:12px;"><input type="checkbox" name="with_pay" value="1"> With pay</label>
+            <div class="profile-modal-actions">
+                <button type="submit" class="btn btn-primary">Apply Deduction</button>
+                <button type="button" class="btn btn-secondary" data-close="undertimeModal">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 @endsection
 
 @push('scripts')
@@ -243,16 +364,16 @@
         modal.style.display = 'none';
         modal.classList.remove('open');
     }
-    document.querySelectorAll('[data-open="photoModal"]').forEach(function(btn){
-        btn.addEventListener('click', function(){ openModal('photoModal'); });
+    document.querySelectorAll('[data-open]').forEach(function(btn){
+        btn.addEventListener('click', function(){ openModal(btn.getAttribute('data-open')); });
     });
-    document.querySelectorAll('[data-close="photoModal"]').forEach(function(btn){
-        btn.addEventListener('click', function(){ closeModal('photoModal'); });
+    document.querySelectorAll('[data-close]').forEach(function(btn){
+        btn.addEventListener('click', function(){ closeModal(btn.getAttribute('data-close')); });
     });
-    var photoModal = document.getElementById('photoModal');
-    if (photoModal) {
-        photoModal.addEventListener('click', function(e){ if (e.target === photoModal) closeModal('photoModal'); });
-    }
+    document.querySelectorAll('.modal').forEach(function(modal){
+        modal.addEventListener('click', function(e){ if (e.target === modal) closeModal(modal.id); });
+    });
+
     var input = document.getElementById('modalProfilePicInput');
     var img = document.getElementById('modalProfileImage');
     var chooseBtn = document.getElementById('choosePhotoBtn');
@@ -280,6 +401,32 @@
             if (saveBtn) saveBtn.style.display = 'none';
             discardBtn.style.display = 'none';
         });
+    }
+
+    var historyType = document.getElementById('historyType');
+    var historyTotalDays = document.getElementById('historyTotalDays');
+    var historyEarningAmount = document.getElementById('historyEarningAmount');
+    var historyUndertimeFields = document.getElementById('historyUndertimeFields');
+    function updateHistoryForm(){
+        if (!historyType) return;
+        var value = String(historyType.value || '');
+        var isAccrual = value === '0';
+        var isUndertime = value === '-1';
+        if (historyUndertimeFields) historyUndertimeFields.style.display = isUndertime ? 'block' : 'none';
+        if (historyEarningAmount) {
+            historyEarningAmount.disabled = !isAccrual;
+            historyEarningAmount.required = isAccrual;
+            if (!isAccrual) historyEarningAmount.value = '';
+        }
+        if (historyTotalDays) {
+            historyTotalDays.disabled = isAccrual || isUndertime;
+            historyTotalDays.required = !(isAccrual || isUndertime);
+            if (isAccrual || isUndertime) historyTotalDays.value = '';
+        }
+    }
+    if (historyType) {
+        historyType.addEventListener('change', updateHistoryForm);
+        updateHistoryForm();
     }
 })();
 </script>

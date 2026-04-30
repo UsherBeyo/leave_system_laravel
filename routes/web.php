@@ -64,6 +64,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/statistics', [StatisticsController::class, 'index'])->name('statistics');
     Route::get('/employee-profile', [EmployeeProfileController::class, 'show'])->name('employee-profile');
     Route::post('/employee-profile/photo', [EmployeeProfileController::class, 'updatePhoto'])->name('employee-profile.photo.update');
+    Route::post('/employee-profile/balances', [EmployeeProfileController::class, 'updateBalances'])->name('employee-profile.balances.update');
+    Route::post('/employee-profile/history', [EmployeeProfileController::class, 'storeHistory'])->name('employee-profile.history.store');
+    Route::post('/employee-profile/undertime', [EmployeeProfileController::class, 'recordUndertime'])->name('employee-profile.undertime.store');
     Route::get('/leave/requests/{leave}/print', [PrintLeaveFormController::class, 'show'])->name('leave.print');
     Route::post('/leave/requests/{leave}/print-signatories', [PrintLeaveFormController::class, 'saveSignatories'])->name('leave.print.signatories');
     Route::get('/change-password', [ChangePasswordController::class, 'edit'])->name('change-password');
@@ -86,6 +89,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/manage-accruals', [AccrualManagementController::class, 'index'])->name('manage-accruals');
     Route::post('/manage-accruals/manual', [AccrualManagementController::class, 'storeManual'])->name('manage-accruals.manual');
     Route::post('/manage-accruals/bulk', [AccrualManagementController::class, 'storeBulk'])->name('manage-accruals.bulk');
+    Route::post('/manage-accruals/automatic', [AccrualManagementController::class, 'updateAutomatic'])->name('manage-accruals.automatic');
 
     Route::get('/manage-leave-types', [LeaveTypeManagementController::class, 'index'])->name('manage-leave-types');
     Route::post('/manage-leave-types', [LeaveTypeManagementController::class, 'store'])->name('manage-leave-types.store');

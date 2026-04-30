@@ -30,6 +30,35 @@ class LeaveRequestController extends Controller
         elseif($tab==='archived') $query->whereIn('workflow_status',['finalized','rejected_department_head','rejected_personnel']);
         $month=max(0,min(12,(int)$request->query('month',0))); $year=max(0,(int)$request->query('year',0)); $departmentId=max(0,(int)$request->query('department_id',0));
         if($month>0)$query->whereMonth('start_date',$month); if($year>0)$query->whereYear('start_date',$year); if($departmentId>0 && in_array($role,['admin','personnel','hr'],true))$query->where('department_id',$departmentId);
+        $search=trim((string)$request->query('q',''));
+        if($search!==''){
+            $like='%'.$search.'%';
+            $query->where(function($q) use ($like){
+                $q->where('leave_type','like',$like)
+                    ->orWhere('reason','like',$like)
+                    ->orWhere('department_head_comments','like',$like)
+                    ->orWhere('personnel_comments','like',$like)
+                    ->orWhere('manager_comments','like',$like)
+                    ->orWhere('status','like',$like)
+                    ->orWhere('workflow_status','like',$like)
+                    ->orWhereRaw("DATE_FORMAT(start_date, '%Y-%m-%d') LIKE ?",[$like])
+                    ->orWhereRaw("DATE_FORMAT(end_date, '%Y-%m-%d') LIKE ?",[$like])
+                    ->orWhereRaw("DATE_FORMAT(created_at, '%Y-%m-%d') LIKE ?",[$like])
+                    ->orWhereHas('leaveTypeRelation',function($typeQuery) use ($like){
+                        $typeQuery->where('name','like',$like);
+                    })
+                    ->orWhereHas('employee',function($employeeQuery) use ($like){
+                        $employeeQuery->where('first_name','like',$like)
+                            ->orWhere('middle_name','like',$like)
+                            ->orWhere('last_name','like',$like)
+                            ->orWhere('department','like',$like)
+                            ->orWhere('position','like',$like)
+                            ->orWhereHas('user',function($userQuery) use ($like){
+                                $userQuery->where('email','like',$like);
+                            });
+                    });
+            });
+        }
         $sortBy=(string)$request->query('sort_by','leave'); $direction=strtolower((string)$request->query('direction','desc'))==='asc'?'asc':'desc';
         if($sortBy==='submitted')$query->orderBy('created_at',$direction); elseif($sortBy==='forwarded')$query->orderBy('department_head_approved_at',$direction)->orderBy('id',$direction); elseif($sortBy==='approved')$query->orderByRaw('COALESCE(finalized_at, personnel_checked_at, department_head_approved_at, created_at) '.$direction); else $query->orderByRaw('COALESCE(start_date, DATE(created_at)) '.$direction)->orderBy('id',$direction);
         $rows=$query->paginate(15)->withQueryString(); $departments=Department::query()->where('is_active',1)->orderBy('name')->get();
@@ -40,7 +69,7 @@ class LeaveRequestController extends Controller
             $approvalImpacts[$row->id] = $this->workflow->previewApprovalImpact($row);
         }
         $signatories = SystemSignatory::query()->orderBy('id')->get()->keyBy('key_name');
-        return view('leaves.requests',compact('rows','tab','role','departments','leavePolicies','approvalImpacts','signatories'));
+        return view('leaves.requests',compact('rows','tab','role','departments','leavePolicies','approvalImpacts','signatories','search'));
     }
 
     public function action(Request $request, LeaveRequest $leave): RedirectResponse

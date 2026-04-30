@@ -2,9 +2,13 @@
 @section('title', 'Reports - Leave System')
 @php
     $actions = [];
+    $isEmployeeReport = ($role ?? null) === 'employee';
     if ($reportType === 'leave_card' && $selectedEmployee) {
-        $actions[] = '<a href="'.route('reports', array_filter(['type' => 'leave_card', 'dept' => $departmentFilter, 'employee_id' => $selectedEmployee->id, 'export' => 'csv'])).'" class="btn btn-secondary">Export Leave Card CSV</a>';
-        $actions[] = '<a href="'.route('employee-profile', ['employee' => $selectedEmployee->id]).'" class="btn btn-ghost">Open Employee Profile</a>';
+        $exportParams = $isEmployeeReport ? ['type' => 'leave_card', 'export' => 'xlsx'] : ['type' => 'leave_card', 'dept' => $departmentFilter, 'employee_id' => $selectedEmployee->id, 'export' => 'xlsx'];
+        $actions[] = '<a href="'.route('reports', array_filter($exportParams)).'" class="btn btn-secondary">Export Leave Card Excel</a>';
+        if (!$isEmployeeReport) {
+            $actions[] = '<a href="'.route('employee-profile', ['employee' => $selectedEmployee->id]).'" class="btn btn-ghost">Open Employee Profile</a>';
+        }
     } elseif (in_array($reportType, ['balance','usage'], true)) {
         $actions[] = '<a href="'.route('reports', array_filter(['type' => $reportType, 'dept' => $departmentFilter, 'export' => 'csv'])).'" class="btn btn-secondary">Export CSV</a>';
     }
@@ -16,9 +20,10 @@
 </style>
 @endpush
 @section('content')
-@include('partials.page-header', ['title' => 'Reports', 'subtitle' => 'Pure Laravel reports built from the capstone report flow.', 'actions' => $actions])
+@include('partials.page-header', ['title' => $isEmployeeReport ? 'Leave Card' : 'Reports', 'subtitle' => $isEmployeeReport ? 'View your own leave card only.' : 'Pure Laravel reports built from the capstone report flow.', 'actions' => $actions])
 
 <div class="report-shell">
+    @if(!$isEmployeeReport)
     <div class="ui-card report-filter-card">
         <form method="GET" action="{{ route('reports') }}" class="report-filter-grid">
             <div class="field">
@@ -56,13 +61,16 @@
             </div>
         </form>
     </div>
+    @endif
 
+    @if(!$isEmployeeReport)
     <div class="report-summary-grid">
         <div class="metric-card"><div class="metric-label">Total Employees</div><div class="report-value">{{ $summary['totalEmployees'] }}</div></div>
         <div class="metric-card"><div class="metric-label">Pending Requests</div><div class="report-value">{{ $summary['pendingRequests'] }}</div></div>
         <div class="metric-card"><div class="metric-label">Approved Requests</div><div class="report-value">{{ $summary['approvedRequests'] }}</div></div>
         <div class="metric-card"><div class="metric-label">Average Vacational Balance</div><div class="report-value">{{ number_format((float)$summary['avgAnnualBalance'], 3) }}</div></div>
     </div>
+    @endif
 
     @if($reportType === 'summary')
         <div class="ui-card">

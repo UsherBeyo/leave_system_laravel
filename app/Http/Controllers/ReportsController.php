@@ -6,32 +6,39 @@ use App\Models\Department;
 use App\Models\DepartmentHeadAssignment;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use App\Services\LeaveCardExcelExportService;
 use App\Services\LeaveLedgerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportsController extends Controller
 {
-    public function __construct(private LeaveLedgerService $ledger)
+    public function __construct(private LeaveLedgerService $ledger, private LeaveCardExcelExportService $leaveCardExcel)
     {
     }
 
-    public function index(Request $request): View|StreamedResponse
+    public function index(Request $request): View|StreamedResponse|Response
     {
         $user = Auth::user();
         $employee = $user->employee;
-        abort_unless(in_array($user->role, ['admin', 'hr', 'personnel', 'department_head'], true), 403);
+        abort_unless(in_array($user->role, ['admin', 'hr', 'personnel', 'department_head', 'employee'], true), 403);
+        if ($user->role === 'employee') {
+            abort_unless($employee, 403);
+        }
 
         [$employees, $departments, $departmentNames] = $this->scopedEmployees($user->role, $employee?->id, $employee?->department_id, $employee?->department);
 
         $reportType = (string) $request->query('type', 'summary');
-        if (!in_array($reportType, ['summary', 'balance', 'usage', 'leave_card'], true)) {
+        if ($user->role === 'employee') {
+            $reportType = 'leave_card';
+        } elseif (!in_array($reportType, ['summary', 'balance', 'usage', 'leave_card'], true)) {
             $reportType = 'summary';
         }
 
-        $departmentFilter = (string) $request->query('dept', '');
+        $departmentFilter = $user->role === 'employee' ? '' : (string) $request->query('dept', '');
         if ($departmentFilter !== '' && !in_array($departmentFilter, $departmentNames, true)) {
             $departmentFilter = '';
         }
@@ -41,10 +48,15 @@ class ReportsController extends Controller
             $filteredEmployees = $filteredEmployees->filter(fn ($row) => (string) $row->department === $departmentFilter)->values();
         }
 
-        $employeeId = (int) $request->query('employee_id', 0);
-        $selectedEmployee = $employeeId ? $filteredEmployees->firstWhere('id', $employeeId) : null;
-        if ($request->has('employee_id') && !$selectedEmployee) {
-            $employeeId = 0;
+        if ($user->role === 'employee') {
+            $employeeId = (int) $employee->id;
+            $selectedEmployee = $filteredEmployees->firstWhere('id', $employeeId);
+        } else {
+            $employeeId = (int) $request->query('employee_id', 0);
+            $selectedEmployee = $employeeId ? $filteredEmployees->firstWhere('id', $employeeId) : null;
+            if ($request->has('employee_id') && !$selectedEmployee) {
+                $employeeId = 0;
+            }
         }
 
         $summary = [
@@ -63,7 +75,12 @@ class ReportsController extends Controller
             $reportData = $this->ledger->buildLeaveCardRows($selectedEmployee->id);
         }
 
-        if ($request->query('export') === 'csv') {
+        $exportType = (string) $request->query('export', '');
+        if (in_array($exportType, ['xlsx', 'excel'], true) && $reportType === 'leave_card' && $selectedEmployee) {
+            return $this->leaveCardExcel->download($selectedEmployee, $reportData);
+        }
+
+        if ($exportType === 'csv') {
             return $this->exportCsv($reportType, $reportData, $selectedEmployee);
         }
 
@@ -81,7 +98,9 @@ class ReportsController extends Controller
 
     private function scopedEmployees(string $role, ?int $employeeId, ?int $departmentId, ?string $departmentName): array
     {
-        if ($role === 'department_head') {
+        if ($role === 'employee') {
+            $query = Employee::query()->where('id', $employeeId ?: 0);
+        } elseif ($role === 'department_head') {
             $deptIds = DepartmentHeadAssignment::query()
                 ->where('employee_id', $employeeId)
                 ->where('is_active', 1)

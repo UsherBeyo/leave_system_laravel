@@ -71,15 +71,19 @@
 <div class="employee-shell">
     <div class="ui-card">
         <div class="employee-toolbar">
-            <form method="GET" action="{{ route('manage-employees') }}" class="employee-search-form">
-                <div class="search-input"><input class="form-control" type="text" name="q" value="{{ $search }}" placeholder="Search employees..."></div>
+            <form method="GET" action="{{ route('manage-employees') }}" class="employee-search-form" id="employeeSearchForm">
+                <div class="search-input">
+                    <input class="form-control" type="text" name="q" id="employeeSearchInput" value="{{ $search }}" placeholder="Search employees..." autocomplete="off">
+                    <div class="employee-search-status" id="employeeSearchStatus" aria-live="polite"></div>
+                </div>
                 <button type="submit" class="btn btn-search-submit ">Search</button>
-                @if($search !== '')<a href="{{ route('manage-employees') }}" class="btn btn-ghost">Clear</a>@endif
+                @if($search !== '')<a href="{{ route('manage-employees') }}" class="btn btn-ghost" id="employeeSearchClear">Clear</a>@endif
             </form>
-            <div class="legend-text">Showing {{ $employees->firstItem() ?? 0 }}–{{ $employees->lastItem() ?? 0 }} of {{ $employees->total() }} employees.</div>
+            <div class="legend-text" id="employeeResultCount">Showing {{ $employees->firstItem() ?? 0 }}–{{ $employees->lastItem() ?? 0 }} of {{ $employees->total() }} employees.</div>
         </div>
 
-        <div class="employee-list">
+        <div class="employee-results-shell" id="employeeResultsShell">
+            <div class="employee-list" id="employeeList">
             @forelse($employees as $employee)
                 @php
                     $payload = [
@@ -160,18 +164,20 @@
                     <div class="employee-actions">
                         <a href="{{ route('employee-profile', ['employee' => $employee->id]) }}" class="btn btn-ghost btn-sm">Profile</a>
                         <a href="{{ route('employee-profile', ['employee' => $employee->id, 'export' => 'leave_card']) }}" class="btn btn-ghost btn-sm">Leave Card</a>
-                        <a href="{{ route('manage-employees', array_filter(['q' => $search, 'page' => request('page'), 'view_history' => $employee->id])) }}#employee-history" class="btn btn-ghost btn-sm">History</a>
                         <button type="button" class="btn btn-secondary btn-sm open-edit-modal" data-payload='@json($payload)'>Edit</button>
                     </div>
                 </article>
             @empty
-                <div class="employee-empty">No employees found.</div>
+                <div class="employee-empty">{{ $search !== '' ? 'No matching employees found for this search.' : 'No employees found.' }}</div>
             @endforelse
-        </div>
+            </div>
 
-        @if($employees->hasPages())
-            <div style="margin-top:18px;">{{ $employees->links('vendor.pagination.clean') }}</div>
-        @endif
+            <div id="employeePagination">
+                @if($employees->hasPages())
+                    <div style="margin-top:18px;">{{ $employees->links('vendor.pagination.clean') }}</div>
+                @endif
+            </div>
+        </div>
     </div>
 </div>
 
@@ -259,34 +265,110 @@
 
     function setField(id, value){ const el=document.getElementById(id); if(!el) return; if(el.type==='checkbox'){ el.checked=!!Number(value || 0); } else { el.value = value ?? ''; } }
 
-    document.querySelectorAll('.open-edit-modal').forEach(btn => {
-        btn.addEventListener('click', function(){
-            const data = JSON.parse(btn.getAttribute('data-payload'));
-            editForm.action = '{{ url('/manage-employees') }}/' + data.id + '?{{ http_build_query(request()->only('q','page')) }}';
-            ['email','first_name','middle_name','last_name','department_id','manager_id','role','position','salary','status','civil_status','entrance_to_duty','unit','gsis_policy_no','national_reference_card_no','annual_balance','sick_balance','force_balance','password'].forEach(key => setField('edit_'+key, data[key]));
-            setField('edit_is_active', data.is_active);
-            const previewName = ((data.first_name || '') + ' ' + (data.middle_name || '') + ' ' + (data.last_name || '')).replace(/\s+/g, ' ').trim() || 'Employee';
-            const dept = departments.find(d => String(d.id) === String(data.department_id || ''));
-            document.getElementById('editPreviewName').textContent = previewName;
-            document.getElementById('editPreviewMeta').textContent = (dept ? dept.name : 'No department') + ' · ' + (data.role ? data.role.replace('_',' ') : 'employee');
-            const avatar = document.getElementById('editPreviewAvatar');
-            if (data.profile_pic) {
-                avatar.innerHTML = '<img src="{{ asset('') }}' + String(data.profile_pic).replace(/^\.\.\//,'') + '" alt="" style="width:56px;height:56px;border-radius:999px;object-fit:cover;">';
-            } else {
-                avatar.textContent = previewName.charAt(0).toUpperCase();
-            }
-            show(editModal);
+    function bindEmployeeCardActions(scope=document){
+        scope.querySelectorAll('.open-edit-modal').forEach(btn => {
+            if (btn.dataset.bound === '1') return;
+            btn.dataset.bound = '1';
+            btn.addEventListener('click', function(){
+                const data = JSON.parse(btn.getAttribute('data-payload'));
+                editForm.action = '{{ url('/manage-employees') }}/' + data.id + '?{{ http_build_query(request()->only('q','page')) }}';
+                ['email','first_name','middle_name','last_name','department_id','manager_id','role','position','salary','status','civil_status','entrance_to_duty','unit','gsis_policy_no','national_reference_card_no','annual_balance','sick_balance','force_balance','password'].forEach(key => setField('edit_'+key, data[key]));
+                setField('edit_is_active', data.is_active);
+                const previewName = ((data.first_name || '') + ' ' + (data.middle_name || '') + ' ' + (data.last_name || '')).replace(/\s+/g, ' ').trim() || 'Employee';
+                const dept = departments.find(d => String(d.id) === String(data.department_id || ''));
+                document.getElementById('editPreviewName').textContent = previewName;
+                document.getElementById('editPreviewMeta').textContent = (dept ? dept.name : 'No department') + ' · ' + (data.role ? data.role.replace('_',' ') : 'employee');
+                const avatar = document.getElementById('editPreviewAvatar');
+                if (data.profile_pic) {
+                    avatar.innerHTML = '<img src="{{ asset('') }}' + String(data.profile_pic).replace(/^\.\.\//,'') + '" alt="" style="width:56px;height:56px;border-radius:999px;object-fit:cover;">';
+                } else {
+                    avatar.textContent = previewName.charAt(0).toUpperCase();
+                }
+                show(editModal);
+            });
         });
-    });
 
-    document.querySelectorAll('[data-image-src]').forEach(img => {
-        img.addEventListener('click', function(){
-            modalImage.src = img.getAttribute('data-image-src');
-            modalImageName.textContent = img.getAttribute('data-image-name') || 'Employee Photo';
-            show(imageModal);
+        scope.querySelectorAll('[data-image-src]').forEach(img => {
+            if (img.dataset.bound === '1') return;
+            img.dataset.bound = '1';
+            img.addEventListener('click', function(){
+                modalImage.src = img.getAttribute('data-image-src');
+                modalImageName.textContent = img.getAttribute('data-image-name') || 'Employee Photo';
+                show(imageModal);
+            });
         });
-    });
+    }
+
+    bindEmployeeCardActions();
     document.getElementById('closeImageModal').addEventListener('click', ()=> hide(imageModal));
+
+    const employeeSearchForm = document.getElementById('employeeSearchForm');
+    const employeeSearchInput = document.getElementById('employeeSearchInput');
+    const employeeResultsShell = document.getElementById('employeeResultsShell');
+    const employeeSearchStatus = document.getElementById('employeeSearchStatus');
+    let employeeSearchTimer = null;
+    let employeeSearchController = null;
+
+    function updateEmployeeUrl(url){
+        const nextUrl = new URL(url, window.location.origin);
+        history.replaceState({}, '', nextUrl.pathname + nextUrl.search);
+    }
+
+    async function fetchEmployeeResults(url){
+        if(!employeeResultsShell) return;
+        if(employeeSearchController) employeeSearchController.abort();
+        employeeSearchController = new AbortController();
+        employeeResultsShell.classList.add('is-loading');
+        if(employeeSearchStatus) employeeSearchStatus.textContent = 'Searching...';
+        try{
+            const response = await fetch(url, {headers:{'X-Requested-With':'XMLHttpRequest'}, signal:employeeSearchController.signal});
+            const html = await response.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const freshShell = doc.getElementById('employeeResultsShell');
+            const freshCount = doc.getElementById('employeeResultCount');
+            const currentCount = document.getElementById('employeeResultCount');
+            if(freshShell){
+                employeeResultsShell.innerHTML = freshShell.innerHTML;
+                bindEmployeeCardActions(employeeResultsShell);
+            }
+            if(freshCount && currentCount) currentCount.innerHTML = freshCount.innerHTML;
+            updateEmployeeUrl(url);
+            if(employeeSearchStatus) employeeSearchStatus.textContent = '';
+        }catch(error){
+            if(error.name !== 'AbortError' && employeeSearchStatus){
+                employeeSearchStatus.textContent = 'Search update failed. Press Search to try again.';
+            }
+        }finally{
+            employeeResultsShell.classList.remove('is-loading');
+        }
+    }
+
+    if(employeeSearchForm && employeeSearchInput){
+        employeeSearchInput.addEventListener('input', function(){
+            clearTimeout(employeeSearchTimer);
+            employeeSearchTimer = setTimeout(() => {
+                const params = new URLSearchParams(new FormData(employeeSearchForm));
+                params.delete('page');
+                const url = employeeSearchForm.action + (params.toString() ? '?' + params.toString() : '');
+                fetchEmployeeResults(url);
+            }, 250);
+        });
+
+        employeeSearchForm.addEventListener('submit', function(event){
+            event.preventDefault();
+            const params = new URLSearchParams(new FormData(employeeSearchForm));
+            params.delete('page');
+            const url = employeeSearchForm.action + (params.toString() ? '?' + params.toString() : '');
+            fetchEmployeeResults(url);
+        });
+
+        employeeResultsShell?.addEventListener('click', function(event){
+            const pageLink = event.target.closest('#employeePagination a');
+            if(!pageLink) return;
+            event.preventDefault();
+            fetchEmployeeResults(pageLink.href);
+        });
+    }
 
     @if($errors->any())
         @if(old('form_mode') === 'edit')

@@ -9,7 +9,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Error - Leave System</title>
+    <title>Forbidden - Leave System</title>
     <link rel="stylesheet" href="{{ asset('assets/css/styles.css') }}">
     <link rel="icon" type="image/jpeg" href="{{ asset('pictures/DEPED.jpg') }}">
     <style>
@@ -31,9 +31,9 @@
 
     <main class="error-shell" id="errorShell">
         <section class="error-card">
-            <span class="error-kicker">Error</span>
-            <h1>The page you entered is not available.</h1>
-            <p class="error-copy">The URL under this site does not exist or cannot be opened from here. Please go back to a valid page and continue from there.</p>
+            <span class="error-kicker">Forbidden</span>
+            <h1>You do not have permission to open this page.</h1>
+            <p class="error-copy">This page is restricted for your current account role. Please go back to a valid page and continue from there.</p>
 
             <div class="error-url-chip" title="Requested path">{{ $requested }}</div>
 

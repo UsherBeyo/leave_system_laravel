@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Accrual;
 use App\Models\AccrualHistory;
 use App\Models\Employee;
+use App\Support\AutoAccrualSettings;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -59,8 +60,34 @@ class AccrualManagementController extends Controller
         }
 
         $totalEmployees = Employee::query()->count();
+        $autoAccrualSettings = AutoAccrualSettings::get();
+        $autoAccrualNextRun = AutoAccrualSettings::nextRunAt();
 
-        return view('accruals.index', compact('employees', 'history', 'search', 'totalEmployees'));
+        return view('accruals.index', compact('employees', 'history', 'search', 'totalEmployees', 'autoAccrualSettings', 'autoAccrualNextRun'));
+    }
+
+
+    public function updateAutomatic(Request $request): RedirectResponse
+    {
+        $this->authorizeRole();
+
+        $data = $request->validate([
+            'mode' => ['required', 'string', 'in:enable,update,disable'],
+            'amount' => ['nullable', 'numeric', 'gt:0'],
+        ]);
+
+        if ($data['mode'] === 'disable') {
+            AutoAccrualSettings::save(['enabled' => false]);
+
+            return redirect()->route('manage-accruals')->with('success', 'Automatic month-end accrual has been disabled. Manual accrual remains available.');
+        }
+
+        AutoAccrualSettings::save([
+            'enabled' => true,
+            'amount' => $this->trunc3((float) ($data['amount'] ?? 1.250)),
+        ]);
+
+        return redirect()->route('manage-accruals')->with('success', 'Automatic month-end accrual is active and scheduled for 11:59 PM on the last day of each month.');
     }
 
     public function storeManual(Request $request): RedirectResponse
@@ -91,6 +118,16 @@ class AccrualManagementController extends Controller
         $count = $this->applyAccrualToEmployees($employeeIds, (float) $data['bulk_amount'], (string) $data['bulk_month']);
 
         return redirect()->route('manage-accruals')->with('success', "Bulk accrual completed for {$count} employee(s).");
+    }
+
+
+    private function trunc3(float $value): float
+    {
+        $multiplier = 1000;
+
+        return $value >= 0
+            ? floor($value * $multiplier) / $multiplier
+            : ceil($value * $multiplier) / $multiplier;
     }
 
     /** @param int[] $employeeIds */

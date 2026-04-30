@@ -8,6 +8,46 @@
         'actions' => []
     ])
 
+    @php
+        $autoAccrualEnabled = (bool)($autoAccrualSettings['enabled'] ?? false);
+        $autoAccrualAmount = number_format((float)($autoAccrualSettings['amount'] ?? 1.250), 3, '.', '');
+        $autoAccrualLastRun = $autoAccrualSettings['last_run_at'] ?? null;
+        $autoAccrualLastMonth = $autoAccrualSettings['last_run_month'] ?? null;
+        $autoAccrualLastCount = (int)($autoAccrualSettings['last_run_count'] ?? 0);
+    @endphp
+
+    <div class="accrual-card auto-accrual-panel {{ $autoAccrualEnabled ? 'is-active' : 'is-disabled' }}">
+        <div class="auto-accrual-main">
+            <span class="auto-accrual-kicker">Automatic schedule</span>
+            <h3>Automatic Month-End Accrual</h3>
+            <p class="accrual-description">When activated, the system adds the configured amount to every employee's <strong>Vacational</strong> and <strong>Sick</strong> balances at <strong>11:59 PM on the last day of each month</strong>. Manual accrual stays available.</p>
+            <div class="auto-accrual-status-row">
+                <span class="auto-accrual-badge {{ $autoAccrualEnabled ? 'active' : 'inactive' }}">{{ $autoAccrualEnabled ? 'Active' : 'Inactive' }}</span>
+                <span>Next scheduled check: <strong>{{ $autoAccrualNextRun->format('F j, Y g:i A') }}</strong></span>
+                @if($autoAccrualLastRun)
+                    <span>Last run: <strong>{{ \Carbon\Carbon::parse($autoAccrualLastRun)->format('F j, Y g:i A') }}</strong> @if($autoAccrualLastMonth) for <strong>{{ $autoAccrualLastMonth }}</strong>@endif ({{ $autoAccrualLastCount }} employee(s))</span>
+                @else
+                    <span>No automatic run recorded yet.</span>
+                @endif
+            </div>
+        </div>
+        <form method="POST" action="{{ route('manage-accruals.automatic') }}" class="auto-accrual-form" id="autoAccrualForm">
+            @csrf
+            <input type="hidden" name="mode" id="auto_accrual_mode" value="{{ $autoAccrualEnabled ? 'update' : 'enable' }}">
+            <div class="accrual-form-item">
+                <label>Monthly Amount</label>
+                <input type="number" step="0.001" min="0.001" name="amount" id="auto_accrual_amount" value="{{ $autoAccrualAmount }}" required>
+            </div>
+            <div class="auto-accrual-actions">
+                <button type="submit" class="btn btn-action-green">{{ $autoAccrualEnabled ? 'Update Automatic Accrual' : 'Activate Automatic Accrual' }}</button>
+                @if($autoAccrualEnabled)
+                    <button type="submit" class="btn btn-secondary" id="disableAutoAccrualBtn">Disable</button>
+                @endif
+            </div>
+            <div class="auto-accrual-note">Force Leave is not affected. Duplicate automatic runs for the same month are blocked by the automatic accrual setting record.</div>
+        </form>
+    </div>
+
     <div class="accrual-card accrual-bulk-launcher">
         <div class="accrual-bulk-copy">
             <h3>Bulk Accrual for All Employees</h3>
@@ -114,7 +154,7 @@
 
 @push('head')
 <style>
-.accrual-bulk-launcher{display:grid;grid-template-columns:1.6fr 1fr auto;gap:18px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:18px;padding:22px;margin-bottom:24px;box-shadow:0 4px 14px rgba(15,23,42,0.06)}.accrual-bulk-highlights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.accrual-highlight,.manual-accrual-card,.history-card{background:#fff;border:1px solid var(--border);border-radius:18px;box-shadow:0 4px 14px rgba(15,23,42,0.06)}.accrual-highlight{padding:14px 16px}.accrual-highlight-label,.accrual-description{font-size:13px;color:var(--muted)}.accrual-highlight strong{display:block;margin-top:6px;font-size:18px;color:var(--text)}.accrual-note{display:flex;align-items:flex-start;gap:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:10px 12px;margin-top:12px;color:#9a3412}.accrual-lower-grid{display:grid;grid-template-columns:420px 1fr;gap:18px}.manual-accrual-card,.history-card{padding:22px}.accrual-manual-form{display:grid;gap:14px}.accrual-form-item{display:flex;flex-direction:column;gap:8px}.accrual-form-item label{font-size:13px;font-weight:700;color:var(--text)}.accrual-form-item input,.accrual-form-item select{padding:10px 12px;border:1px solid var(--border);border-radius:12px}.accrual-form-actions{display:flex;justify-content:flex-end;gap:8px}.history-table-shell{overflow:auto}.accrual-history-table{width:100%;border-collapse:collapse}.accrual-history-table th,.accrual-history-table td{padding:12px 14px;border-bottom:1px solid var(--border);text-align:left}.amount-pill{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-weight:700;font-size:12px}.accrual-bulk-modal{display:none}.accrual-bulk-modal.open{display:flex}.accrual-bulk-modal-content{max-width:760px}.accrual-bulk-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}.accrual-bulk-modal-form{display:grid;gap:14px}.accrual-bulk-actions{justify-content:flex-end}.accrual-history-search{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.accrual-history-search .search-input{min-width:240px;flex:1}@media (max-width:1100px){.accrual-bulk-launcher,.accrual-lower-grid{grid-template-columns:1fr}.accrual-bulk-highlights,.accrual-bulk-summary-grid{grid-template-columns:1fr}} 
+.auto-accrual-panel{display:grid;grid-template-columns:1fr 340px;gap:22px;align-items:center;margin-bottom:24px;padding:24px;border:1px solid #bbf7d0;border-radius:22px;background:linear-gradient(135deg,#f0fdf4 0%,#ffffff 62%,#eff6ff 100%);box-shadow:0 10px 30px rgba(22,101,52,.10)}.auto-accrual-panel.is-disabled{border-color:#e2e8f0;background:linear-gradient(135deg,#f8fafc 0%,#ffffff 70%)}.auto-accrual-kicker{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:#dcfce7;color:#166534;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}.auto-accrual-panel h3{margin:10px 0 8px}.auto-accrual-status-row{display:flex;flex-direction:column;gap:6px;margin-top:14px;font-size:13px;color:var(--muted)}.auto-accrual-badge{display:inline-flex;width:max-content;align-items:center;padding:6px 12px;border-radius:999px;font-weight:800;font-size:12px}.auto-accrual-badge.active{background:#bbf7d0;color:#166534}.auto-accrual-badge.inactive{background:#e2e8f0;color:#475569}.auto-accrual-form{display:grid;gap:12px;background:#fff;border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:0 6px 18px rgba(15,23,42,.06)}.auto-accrual-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.auto-accrual-note{font-size:12px;color:var(--muted);line-height:1.5}.accrual-bulk-launcher{display:grid;grid-template-columns:1.6fr 1fr auto;gap:18px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:18px;padding:22px;margin-bottom:24px;box-shadow:0 4px 14px rgba(15,23,42,0.06)}.accrual-bulk-highlights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.accrual-highlight,.manual-accrual-card,.history-card{background:#fff;border:1px solid var(--border);border-radius:18px;box-shadow:0 4px 14px rgba(15,23,42,0.06)}.accrual-highlight{padding:14px 16px}.accrual-highlight-label,.accrual-description{font-size:13px;color:var(--muted)}.accrual-highlight strong{display:block;margin-top:6px;font-size:18px;color:var(--text)}.accrual-note{display:flex;align-items:flex-start;gap:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:10px 12px;margin-top:12px;color:#9a3412}.accrual-lower-grid{display:grid;grid-template-columns:420px 1fr;gap:18px}.manual-accrual-card,.history-card{padding:22px}.accrual-manual-form{display:grid;gap:14px}.accrual-form-item{display:flex;flex-direction:column;gap:8px}.accrual-form-item label{font-size:13px;font-weight:700;color:var(--text)}.accrual-form-item input,.accrual-form-item select{padding:10px 12px;border:1px solid var(--border);border-radius:12px}.accrual-form-actions{display:flex;justify-content:flex-end;gap:8px}.history-table-shell{overflow:auto}.accrual-history-table{width:100%;border-collapse:collapse}.accrual-history-table th,.accrual-history-table td{padding:12px 14px;border-bottom:1px solid var(--border);text-align:left}.amount-pill{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-weight:700;font-size:12px}.accrual-bulk-modal{display:none}.accrual-bulk-modal.open{display:flex}.accrual-bulk-modal-content{max-width:760px}.accrual-bulk-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}.accrual-bulk-modal-form{display:grid;gap:14px}.accrual-bulk-actions{justify-content:flex-end}.accrual-history-search{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.accrual-history-search .search-input{min-width:240px;flex:1}@media (max-width:1100px){.auto-accrual-panel,.accrual-bulk-launcher,.accrual-lower-grid{grid-template-columns:1fr}.accrual-bulk-highlights,.accrual-bulk-summary-grid{grid-template-columns:1fr}} 
 </style>
 @endpush
 
@@ -133,6 +173,11 @@
     if(bulkModal){ bulkModal.addEventListener('click', function(e){ if(e.target===bulkModal){closeBulkAccrualModal();} }); }
     document.addEventListener('keydown', function(e){ if(e.key==='Escape' && bulkModal && bulkModal.classList.contains('open')){ closeBulkAccrualModal(); } });
     if(bulkAccrualForm){ bulkAccrualForm.addEventListener('submit', function(e){ var amount=document.getElementById('bulk_amount').value||'1.250'; var month=document.getElementById('bulk_month').value||''; if(!confirm('Are you sure you want to add ' + amount + ' day(s) to BOTH Vacational and Sick balances of ALL employees?')){ e.preventDefault(); return; } if(!confirm('This will affect all employees and write accrual history logs for month ' + month + '. Continue?')){ e.preventDefault(); return; } if(!confirm('Final confirmation: this can be done even if it is NOT yet the end of the month. Force Leave will NOT be changed. Do you want to proceed?')){ e.preventDefault(); } }); }
+    var autoAccrualForm = document.getElementById('autoAccrualForm');
+    var autoAccrualMode = document.getElementById('auto_accrual_mode');
+    var disableAutoAccrualBtn = document.getElementById('disableAutoAccrualBtn');
+    if(disableAutoAccrualBtn && autoAccrualMode){ disableAutoAccrualBtn.addEventListener('click', function(){ autoAccrualMode.value='disable'; }); }
+    if(autoAccrualForm){ autoAccrualForm.addEventListener('submit', function(e){ var mode=autoAccrualMode ? autoAccrualMode.value : 'enable'; var amount=document.getElementById('auto_accrual_amount')?.value || '1.250'; if(mode==='disable'){ if(!confirm('Disable automatic month-end accrual? Manual accrual will remain available.')){ e.preventDefault(); } return; } if(!confirm('Activate/update automatic month-end accrual for 11:59 PM on the last day of each month with ' + amount + ' day(s)?')){ e.preventDefault(); } }); }
 })();
 </script>
 @endpush

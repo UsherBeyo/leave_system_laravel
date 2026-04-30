@@ -28,6 +28,7 @@
 .request-person{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}.request-person-main{display:flex;gap:14px;align-items:flex-start;min-width:0}.request-person h3{margin:0 0 4px;font-size:24px}.request-person .help-text{font-size:14px}.request-meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:18px}.request-meta-card{padding:14px 16px;border-radius:18px;background:#fff;border:1px solid var(--border);box-shadow:0 4px 14px rgba(15,23,42,.04)}.request-meta-card span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px;font-weight:700}.request-meta-card strong{display:block;font-size:15px;color:var(--text);line-height:1.4}.request-reason-box{margin-top:16px;padding:16px 18px;border-radius:18px;background:#fff;border:1px solid var(--border)}.request-reason-box span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px;font-weight:700}.request-reason-box p{margin:0;color:var(--text);line-height:1.6}.request-top-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.request-stage-note{font-size:13px;color:var(--muted);line-height:1.55}.request-sidecard{padding:16px 18px;border-radius:18px;background:#fff;border:1px solid var(--border)}.request-sidecard h4{margin:0 0 10px;font-size:15px}.request-sidecard .mini-list{display:flex;flex-direction:column;gap:8px}.request-sidecard .mini-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--secondary-text)}.request-sidecard .mini-row strong{color:var(--text)}
 .balance-visual-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:22px 24px;background:#fff}.balance-card{border:1px solid var(--border);border-radius:20px;padding:18px 18px 16px;background:#f8fafc;position:relative;overflow:hidden}.balance-card.balance-card-highlight{border-color:#93c5fd;background:linear-gradient(180deg,#eff6ff 0%,#f8fbff 100%);box-shadow:0 10px 28px rgba(37,99,235,.10)}.balance-card-label{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:14px}.balance-card-label strong{font-size:16px}.balance-tag{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:#fff;border:1px solid #dbeafe;color:#1d4ed8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}.balance-values{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}.balance-value-box{padding:12px 12px;border-radius:16px;background:#fff;border:1px solid var(--border);min-width:0}.balance-value-box span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px;font-weight:700}.balance-value-box strong{display:block;font-size:23px;line-height:1.1;color:var(--text)}.balance-arrow{font-size:26px;color:#94a3b8;font-weight:700;text-align:center}.balance-delta{margin-top:12px;display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:13px;color:var(--secondary-text)}.balance-delta strong{color:var(--text)}.balance-delta-negative{color:#b91c1c;font-weight:700}.balance-delta-neutral{color:#475569;font-weight:700}.balance-impact-note{padding:0 24px 18px;background:#fff}.balance-impact-note p{margin:0;padding:14px 16px;border-radius:16px;background:#f8fafc;border:1px solid var(--border);color:var(--secondary-text)}
 .action-sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px;padding:0 24px 24px;background:#fff}.action-panel{border:1px solid var(--border);border-radius:20px;padding:18px;background:#f8fafc}.action-panel h4{margin:0 0 12px;font-size:16px}.action-panel p{margin:0 0 14px;font-size:13px;color:var(--muted);line-height:1.55}.request-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin-top:12px}.request-actions.request-actions-compact{grid-template-columns:1fr}.request-actions .inline-inputs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.request-actions .field{margin:0}.action-row{display:flex;gap:10px;flex-wrap:wrap}.action-row .btn{margin-right:0}.empty-request-state{padding:26px;text-align:center;background:#fff;border:1px dashed var(--border);border-radius:20px;color:var(--muted)}
+	.request-list.is-loading{opacity:.55;pointer-events:none;transition:opacity .18s ease}.live-search-status{margin-top:8px;font-size:12px;color:var(--muted);min-height:18px}
 .request-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:14px}.request-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:18px}.request-detail-panel{background:#fff;border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:0 4px 14px rgba(15,23,42,0.05)}.request-detail-panel h4{margin:0 0 12px;font-size:16px}.request-kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #eef2f7}.request-kv:last-child{border-bottom:none;padding-bottom:0}.request-kv span{color:var(--muted);font-size:13px}.request-kv strong{text-align:right;font-size:14px;color:var(--text)}.request-chip-list{display:flex;flex-wrap:wrap;gap:8px}.request-chip{display:inline-flex;align-items:center;padding:7px 11px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:600;border:1px solid #bfdbfe}.request-chip-muted{background:#f8fafc;color:#475569;border-color:#e2e8f0}.request-note-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.request-note-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:14px}.request-note-card span{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}.request-note-card strong{display:block;font-size:14px;line-height:1.55;color:var(--text);word-break:break-word}.request-detail-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.request-detail-item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px}.request-detail-item span{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}.request-detail-item strong{display:block;font-size:14px;line-height:1.45;color:var(--text);word-break:break-word}
 .ls-modal{position:fixed;inset:0;background:rgba(15,23,42,.58);display:none;align-items:center;justify-content:center;padding:24px;z-index:4000}.ls-modal.open{display:flex}.ls-modal-dialog{width:min(1100px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;background:#fff;border-radius:24px;box-shadow:0 24px 80px rgba(15,23,42,.25);padding:24px;position:relative}.ls-modal-close{position:absolute;top:14px;right:14px;border:none;background:#f8fafc;border-radius:999px;width:36px;height:36px;font-size:22px;cursor:pointer;color:#334155}.ls-modal-header{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;padding-right:44px;margin-bottom:18px;flex-wrap:wrap}.ls-modal-badge{display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:700;border:1px solid #bfdbfe}.ls-modal-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:20px}.attachment-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.attachment-preview-body{min-height:220px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:10px;display:flex;align-items:center;justify-content:center}.attachment-preview-frame{width:100%;min-height:70vh;border:none;border-radius:12px;background:#fff}.attachment-preview-image{max-width:100%;max-height:70vh;border-radius:12px;object-fit:contain}.print-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.print-form-grid .field{margin:0}.summary-action-buttons{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
 @media (max-width: 1220px){.request-summary-row{grid-template-columns:minmax(180px,1.1fr) repeat(4,minmax(120px,.8fr)) auto;}.request-summary-col.department-col{display:none}}
@@ -58,7 +59,7 @@
     <div class="ui-card filters-card">
         <form method="GET" action="{{ route('leave.requests') }}" class="form-grid filter-grid" id="leaveRequestFilterForm">
             <input type="hidden" name="tab" value="{{ $tab }}">
-            <div class="field" style="grid-column:span 2;"><label>Search This Section</label><input type="text" name="q" id="leaveRequestLiveSearch" value="{{ $search ?? request('q','') }}" placeholder="Search employee, email, leave type, comments, or dates..."></div>
+            <div class="field" style="grid-column:span 2;"><label>Search This Section</label><input type="text" name="q" id="leaveRequestLiveSearch" value="{{ $search ?? request('q','') }}" placeholder="Search employee, email, leave type, comments, or dates..." autocomplete="off"><div id="leaveRequestLiveSearchStatus" class="live-search-status" aria-live="polite"></div></div>
             <div class="field"><label>Month</label><select name="month">
                 <option value="0" @selected(request('month',0)==0)>All Months</option>
                 <option value="1" @selected(request('month')==1)>January</option>
@@ -89,7 +90,7 @@
         </form>
     </div>
 
-    <div class="request-list">
+    <div class="request-list" id="leaveRequestResults">
         @forelse($rows as $row)
             @php
                 $policy = $leavePolicies[$row->id] ?? ['documents' => []];
@@ -254,11 +255,11 @@
                 </div>
             @endif
         @empty
-            <div class="empty-request-state">No leave requests found for this filter.</div>
+            <div class="empty-request-state">No matching leave requests found for this search/filter.</div>
         @endforelse
     </div>
 
-    {{ $rows->onEachSide(1)->links('vendor.pagination.clean') }}
+    <div id="leaveRequestPagination">{{ $rows->onEachSide(1)->links('vendor.pagination.clean') }}</div>
 </div>
 
 <div id="attachmentPreviewModal" class="ls-modal" onclick="if(event.target===this) closeAttachmentPreview()"><div class="ls-modal-dialog" style="width:min(960px,calc(100vw - 32px));"><button type="button" class="ls-modal-close" onclick="closeAttachmentPreview()">&times;</button><div class="ls-modal-header"><div><h3 id="attachmentPreviewTitle" style="margin:0 0 6px;">Attachment Preview</h3><p class="help-text" style="margin:0;">Quick preview for uploaded request attachments.</p></div><span class="ls-modal-badge">Attachment Preview</span></div><div id="attachmentPreviewBody" class="attachment-preview-body"></div><div class="ls-modal-actions"><button type="button" class="btn btn-secondary" onclick="closeAttachmentPreview()">Close</button><a id="attachmentPreviewOpenLink" class="btn btn-primary" href="#" target="_blank" rel="noopener">Open in New Tab</a></div></div></div>
@@ -273,12 +274,73 @@ function closeAttachmentPreview(){ const modal=document.getElementById('attachme
 (function(){
     const searchInput = document.getElementById('leaveRequestLiveSearch');
     const filterForm = document.getElementById('leaveRequestFilterForm');
-    if (!searchInput || !filterForm) return;
+    const results = document.getElementById('leaveRequestResults');
+    const pagination = document.getElementById('leaveRequestPagination');
+    const status = document.getElementById('leaveRequestLiveSearchStatus');
+    if (!searchInput || !filterForm || !results) return;
+
     let timer = null;
-    searchInput.addEventListener('input', function(){
+    let controller = null;
+
+    function setStatus(message){
+        if (status) status.textContent = message || '';
+    }
+
+    function buildSearchUrl(pageUrl){
+        const url = new URL(pageUrl || filterForm.action, window.location.origin);
+        const params = new URLSearchParams(new FormData(filterForm));
+        if (!pageUrl) params.delete('page');
+        url.search = params.toString();
+        return url;
+    }
+
+    async function loadLeaveRequests(pageUrl){
+        if (controller) controller.abort();
+        controller = new AbortController();
+        const url = buildSearchUrl(pageUrl);
+        results.classList.add('is-loading');
+        setStatus('Searching...');
+
+        try {
+            const response = await fetch(url.toString(), {
+                headers: {'X-Requested-With':'XMLHttpRequest'},
+                signal: controller.signal
+            });
+            const html = await response.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const nextResults = doc.getElementById('leaveRequestResults');
+            const nextPagination = doc.getElementById('leaveRequestPagination');
+
+            if (nextResults) results.innerHTML = nextResults.innerHTML;
+            if (pagination && nextPagination) pagination.innerHTML = nextPagination.innerHTML;
+
+            window.history.replaceState({}, '', url.toString());
+            setStatus(searchInput.value.trim() ? 'Results updated.' : '');
+            bindPaginationLinks();
+        } catch (error) {
+            if (error.name !== 'AbortError') setStatus('Unable to update results. Please try again.');
+        } finally {
+            results.classList.remove('is-loading');
+        }
+    }
+
+    function queueLiveSearch(){
         clearTimeout(timer);
-        timer = setTimeout(function(){ filterForm.submit(); }, 450);
-    });
+        timer = setTimeout(function(){ loadLeaveRequests(); }, 250);
+    }
+
+    function bindPaginationLinks(){
+        if (!pagination) return;
+        pagination.querySelectorAll('a[href]').forEach(function(link){
+            link.addEventListener('click', function(event){
+                event.preventDefault();
+                loadLeaveRequests(link.href);
+            });
+        });
+    }
+
+    searchInput.addEventListener('input', queueLiveSearch);
+    bindPaginationLinks();
 })();
 </script>
 @endpush

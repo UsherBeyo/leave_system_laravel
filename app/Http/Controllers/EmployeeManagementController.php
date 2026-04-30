@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\DepartmentHeadAssignment;
 use App\Models\Employee;
 use App\Models\User;
+use App\Support\BalanceLedger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -116,6 +117,10 @@ class EmployeeManagementController extends Controller
         $data = $this->validatedData($request, false, $employee);
 
         DB::transaction(function () use ($data, $request, $employee) {
+            $oldAnnual = (float) $employee->annual_balance;
+            $oldSick = (float) $employee->sick_balance;
+            $oldForce = (float) $employee->force_balance;
+
             $user = $employee->user;
             if ($user) {
                 $user->email = $data['email'];
@@ -150,6 +155,18 @@ class EmployeeManagementController extends Controller
                 'force_balance' => $data['force_balance'],
                 'profile_pic' => $profilePic,
             ]);
+
+            if ($this->balancesDiffer($oldAnnual, (float) $data['annual_balance'])) {
+                BalanceLedger::logBudgetChange($employee->id, 'Annual', $oldAnnual, (float) $data['annual_balance'], 'adjustment', null, 'Admin/personnel manual adjustment');
+            }
+
+            if ($this->balancesDiffer($oldSick, (float) $data['sick_balance'])) {
+                BalanceLedger::logBudgetChange($employee->id, 'Sick', $oldSick, (float) $data['sick_balance'], 'adjustment', null, 'Admin/personnel manual adjustment');
+            }
+
+            if ($this->balancesDiffer($oldForce, (float) $data['force_balance'])) {
+                BalanceLedger::logBudgetChange($employee->id, 'Force', $oldForce, (float) $data['force_balance'], 'adjustment', null, 'Admin/personnel manual adjustment');
+            }
 
             $this->syncDepartmentHeadAssignment($employee->fresh(), $data['role'], $data['department_id']);
         });
@@ -248,6 +265,11 @@ class EmployeeManagementController extends Controller
         $file->move($uploadDir, $filename);
 
         return 'uploads/' . $filename;
+    }
+
+    private function balancesDiffer(float $old, float $new): bool
+    {
+        return number_format($old, 3, '.', '') !== number_format($new, 3, '.', '');
     }
 
     private function nullableString($value): ?string
