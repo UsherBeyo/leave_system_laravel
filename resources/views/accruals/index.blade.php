@@ -29,7 +29,7 @@
 
     <div class="accrual-lower-grid">
         <div class="manual-accrual-card">
-            <h3>Record Manual Accrual</h3>
+            <h3 >Record Manual Accrual</h3>
             <p class="accrual-description">Use this to record manual accruals for past periods or special cases.</p>
             <form method="POST" action="{{ route('manage-accruals.manual') }}" class="accrual-manual-form">
                 @csrf
@@ -50,7 +50,7 @@
                     <label>For Month</label>
                     <input type="month" name="month" value="{{ now()->format('Y-m') }}" required>
                 </div>
-                <div class="accrual-form-actions"><button type="submit" class="btn btn-primary">Record Accrual</button></div>
+                <div class="accrual-form-actions"><button type="submit" class="btn btn-action-green ">Record Accrual</button></div>
             </form>
         </div>
 
@@ -60,7 +60,7 @@
             <div class="fragment-toolbar">
                 <form method="GET" action="{{ route('manage-accruals') }}" class="accrual-history-search">
                     <div class="search-input"><input class="form-control" type="text" name="history_q" value="{{ $search }}" placeholder="Search employee or month..."></div>
-                    <button type="submit" class="btn btn-secondary">Search</button>
+                    <button type="submit" class="btn btn-search-submit ">Search</button>
                     @if($search !== '')<a href="{{ route('manage-accruals') }}" class="btn btn-ghost">Clear</a>@endif
                 </form>
                 <div class="fragment-summary">Showing {{ $history->firstItem() ?? 0 }}–{{ $history->lastItem() ?? 0 }} of {{ $history->total() }} history rows</div>

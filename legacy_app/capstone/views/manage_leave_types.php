@@ -50,12 +50,17 @@ $types = $typesPagination['items'];
                 <td><?= $t['max_days_per_year'] ?: '-'; ?></td>
                 <td><?= $t['auto_approve'] ? 'Yes' : 'No'; ?></td>
                 <td>
-                    <button onclick="openEditModal(<?= $t['id']; ?>, '<?= htmlspecialchars($t['name']); ?>', <?= $t['deduct_balance']; ?>, <?= $t['requires_approval']; ?>, <?= $t['max_days_per_year'] ?: 'null'; ?>, <?= $t['auto_approve']; ?>)">Edit</button>
-                    <form method="POST" action="../controllers/LeaveTypeController.php" style="display:inline;" onsubmit="return confirm('Delete this type?');">
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="type_id" value="<?= $t['id']; ?>">
-                        <button type="submit" class="btn btn-danger">Delete</button>
-                    </form>
+                    <div class="d-flex align-items-center gap-2">
+                        <button style="padding: 34px 24px; font-size: 12px; height: 30px; min-width: 55px;"
+onclick="openEditModal(<?= $t['id']; ?>, '<?= htmlspecialchars($t['name']); ?>', <?= $t['deduct_balance']; ?>, <?= $t['requires_approval']; ?>, <?= $t['max_days_per_year'] ?: 'null'; ?>, <?= $t['auto_approve']; ?>)">
+    Edit
+</button>
+                        <form method="POST" action="../controllers/LeaveTypeController.php" style="margin:0;" onsubmit="return confirm('Delete this type?');">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="type_id" value="<?= $t['id']; ?>">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             <?php endforeach; ?>

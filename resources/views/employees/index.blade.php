@@ -65,7 +65,7 @@
 @include('partials.page-header', [
     'title' => 'Manage Employees',
     'subtitle' => 'Create, edit, and review employee accounts and balances.',
-    'actions' => ['<button type="button" class="btn btn-primary" id="openCreateEmployeeModal">+ New Employee</button>']
+    'actions' => ['<button type="button" class="btn btn-action-green " id="openCreateEmployeeModal">+ New Employee</button>']
 ])
 
 <div class="employee-shell">
@@ -73,7 +73,7 @@
         <div class="employee-toolbar">
             <form method="GET" action="{{ route('manage-employees') }}" class="employee-search-form">
                 <div class="search-input"><input class="form-control" type="text" name="q" value="{{ $search }}" placeholder="Search employees..."></div>
-                <button type="submit" class="btn btn-secondary">Search</button>
+                <button type="submit" class="btn btn-search-submit ">Search</button>
                 @if($search !== '')<a href="{{ route('manage-employees') }}" class="btn btn-ghost">Clear</a>@endif
             </form>
             <div class="legend-text">Showing {{ $employees->firstItem() ?? 0 }}–{{ $employees->lastItem() ?? 0 }} of {{ $employees->total() }} employees.</div>

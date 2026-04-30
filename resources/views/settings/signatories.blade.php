@@ -37,7 +37,7 @@
                     </tbody>
                 </table>
             </div>
-            <div style="margin-top:18px;"><button type="submit" class="btn btn-primary">Save Changes</button></div>
+            <div style="margin-top:18px;"><button type="submit" class="btn btn-action-green ">Save Changes</button></div>
         </form>
     </div>
 @endsection

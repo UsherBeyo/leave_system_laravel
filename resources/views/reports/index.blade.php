@@ -52,7 +52,7 @@
                 </div>
             @endif
             <div class="filter-actions">
-                <button type="submit" class="btn btn-primary">Apply Filter</button>
+                <button style="padding: 8px 12px; margin-bottom: 20px;" type="submit" class="btn btn-primary">Apply Filter</button>
             </div>
         </form>
     </div>

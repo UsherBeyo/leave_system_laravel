@@ -410,7 +410,7 @@ $monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov'
             display:grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 16px;
-            margin-bottom: 24px;
+             margin-bottom: 24px;
         }
         .dashboard-metric {
             padding: 18px;

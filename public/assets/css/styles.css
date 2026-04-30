@@ -1,3 +1,71 @@
+/* ================================================== */
+/*  Custom Action Button Color System (2026-04-30)    */
+/* ================================================== */
+
+.btn-action-green {
+    background: #10b981 !important;
+    border: 1px solid #10b981 !important;
+    color: #ffffff !important;
+}
+
+.btn-action-green:hover {
+    background: #059669 !important;
+    border-color: #059669 !important;
+    color: #ffffff !important;
+    text-decoration: none !important;
+}
+
+.btn-action-slate {
+    background: #475569 !important;
+    border: 1px solid #475569 !important;
+    color: #ffffff !important;
+}
+
+.btn-action-slate:hover {
+    background: #334155 !important;
+    border-color: #334155 !important;
+    color: #ffffff !important;
+    text-decoration: none !important;
+}
+
+.btn-action-purple {
+    background: #7c3aed !important;
+    border: 1px solid #7c3aed !important;
+    color: #ffffff !important;
+}
+
+.btn-action-purple:hover {
+    background: #6d28d9 !important;
+    border-color: #6d28d9 !important;
+    color: #ffffff !important;
+    text-decoration: none !important;
+}
+
+.btn-action-amber {
+    background: #f59e0b !important;
+    border: 1px solid #f59e0b !important;
+    color: #ffffff !important;
+}
+
+.btn-action-amber:hover {
+    background: #d97706 !important;
+    border-color: #d97706 !important;
+    color: #ffffff !important;
+    text-decoration: none !important;
+}
+
+.btn-action-light {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+}
+
+.btn-action-light:hover {
+    background: #e2e8f0 !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+    text-decoration: none !important;
+}
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
@@ -378,6 +446,44 @@ small, .text-small {
     background: var(--bg);
     border-color: var(--primary);
 }
+.btn-action-green {
+    background: #10b981 !important;
+    border: 1px solid #10b981 !important;
+    color: #ffffff !important;
+}
+
+.btn-action-green:hover {
+    background: #059669 !important;
+    border-color: #059669 !important;
+    color: #ffffff !important;
+    text-decoration: none !important;
+}
+button.btn-search-submit,
+button.btn.btn-search-submit,
+input.btn-search-submit,
+input.btn.btn-search-submit,
+a.btn-search-submit,
+a.btn.btn-search-submit {
+    padding: 8px 12px !important;
+    margin-bottom: 12px !important;
+    background: #475569 !important;
+    border: 1px solid #475569 !important;
+    color: #ffffff !important;
+}
+
+button.btn-search-submit:hover,
+button.btn.btn-search-submit:hover,
+input.btn-search-submit:hover,
+input.btn.btn-search-submit:hover,
+a.btn-search-submit:hover,
+a.btn.btn-search-submit:hover {
+    background: #334155 !important;
+    border-color: #334155 !important;
+    color: #ffffff !important;
+    text-decoration: none !important;
+}
+
+
 
 .btn-ghost {
     background: #2563eb;
@@ -2945,7 +3051,7 @@ body.login-page {
     background: rgba(255,255,255,0.9);
     border: 1px solid rgba(148,163,184,0.22);
     border-radius: 28px;
-    box-shadow: 0 20px 60px rgba(15,23,42,0.14);
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.14);
     backdrop-filter: blur(10px);
     padding: 32px;
     text-align: center;

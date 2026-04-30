@@ -5,7 +5,7 @@
     @include('partials.page-header', [
         'title' => 'Leave Types',
         'subtitle' => 'Configure available leave categories and allocation rules',
-        'actions' => ['<button type="button" class="btn btn-primary" id="openCreateLeaveTypeModal">+ New Leave Type</button>']
+        'actions' => ['<button type="button" class="btn btn-action-green " id="openCreateLeaveTypeModal">+ New Leave Type</button>']
     ])
 
     <div class="ui-card leave-types-card ajax-fragment">
@@ -14,7 +14,7 @@
                 <div class="search-input">
                     <input class="form-control" type="text" name="q" value="{{ $search }}" placeholder="Search leave types...">
                 </div>
-                <button type="submit" class="btn btn-secondary">Search</button>
+                <button type="submit" class="btn btn-search-submit">Search</button>
                 @if($search !== '')<a href="{{ route('manage-leave-types') }}" class="btn btn-ghost">Clear</a>@endif
             </form>
             <div class="fragment-summary">Showing {{ $types->firstItem() ?? 0 }}–{{ $types->lastItem() ?? 0 }} of {{ $types->total() }} leave types.</div>
@@ -47,9 +47,9 @@
                         <td>{{ $type->requires_documents ? 'Yes' : 'No' }}</td>
                         <td>{{ $type->max_days_per_year ?: '-' }}</td>
                         <td>
-                            <div class="department-actions">
+                            <div class="department-actions" style="display: flex; align-items: center; gap: 8px; flex-wrap: nowrap;">
                                 <button type="button" class="btn btn-secondary btn-sm edit-leave-type-btn" data-payload='@json($type)'>Edit</button>
-                                <form method="POST" action="{{ route('manage-leave-types.destroy', $type) }}?{{ http_build_query(request()->only('q', 'page')) }}" onsubmit="return confirm('Delete this leave type?');">
+                                <form method="POST" action="{{ route('manage-leave-types.destroy', $type) }}?{{ http_build_query(request()->only('q', 'page')) }}" style="margin: 0; display: inline-flex;" onsubmit="return confirm('Delete this leave type?');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-danger btn-sm">Delete</button>

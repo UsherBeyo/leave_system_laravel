@@ -5,7 +5,7 @@
     @include('partials.page-header', [
         'title' => 'Manage Departments',
         'subtitle' => 'Manage department structure and employee assignments',
-        'actions' => ['<button type="button" class="btn btn-primary" id="openCreateDepartmentModal">+ New Department</button>']
+        'actions' => ['<button type="button" class="btn btn-action-green" id="openCreateDepartmentModal">+ New Department</button>']
     ])
 
     <div class="ui-card ajax-fragment department-shell">
@@ -14,7 +14,7 @@
                 <div class="search-input">
                     <input class="form-control" type="text" name="q" value="{{ $search }}" placeholder="Search departments...">
                 </div>
-                <button type="submit" class="btn btn-secondary">Search</button>
+                <button type="submit" class="btn btn-search-submit">Search</button>
                 @if($search !== '')<a href="{{ route('manage-departments') }}" class="btn btn-ghost">Clear</a>@endif
             </form>
             <div class="fragment-summary">Showing {{ $departments->firstItem() ?? 0 }}–{{ $departments->lastItem() ?? 0 }} of {{ $departments->total() }} departments.</div>

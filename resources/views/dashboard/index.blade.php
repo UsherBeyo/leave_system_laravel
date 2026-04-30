@@ -5,7 +5,7 @@
     $displayName = auth()->user()->employee?->fullName() ?: auth()->user()->email;
     $actions = [];
     if (in_array($role, ['department_head','personnel','manager','hr','admin'], true)) {
-        $actions[] = '<a href="'.route('leave.requests').'" class="btn btn-secondary">Open Leave Requests</a>';
+        $actions[] = '<a href="'.route('leave.requests').'" class="btn btn-action-green ">Open Leave Requests</a>';
     }
     if ($role === 'employee') {
         $actions[] = '<a href="'.route('leave.apply').'" class="btn btn-primary">Apply Leave</a>';

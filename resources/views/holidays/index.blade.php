@@ -5,7 +5,7 @@
     @include('partials.page-header', [
         'title' => 'Manage Holidays',
         'subtitle' => 'Configure holiday dates used by the leave calendar',
-        'actions' => ['<a href="'.route('calendar').'" class="btn btn-secondary">Open Calendar</a>']
+        'actions' => ['<a href="'.route('calendar').'" class="btn btn-action-green" style="background:#10b981;border-color:#10b981;color:#fff;">Open Calendar</a>']
     ])
 
     <div class="ui-card holidays-card">
@@ -14,7 +14,7 @@
                 <div class="search-input">
                     <input class="form-control" type="text" name="q" value="{{ $search }}" placeholder="Search date, description, or type...">
                 </div>
-                <button type="submit" class="btn btn-secondary">Search</button>
+               <button type="submit" class="btn btn-search-submit">Search</button>
                 @if($search !== '')<a href="{{ route('holidays') }}" class="btn btn-ghost">Clear</a>@endif
             </form>
             <div class="fragment-summary">Showing {{ $holidays->firstItem() ?? 0 }}–{{ $holidays->lastItem() ?? 0 }} of {{ $holidays->total() }} holiday entries.</div>
@@ -39,7 +39,7 @@
                 <input type="text" name="description" class="form-control" value="{{ old('description') }}">
             </div>
             <div class="holidays-create-actions">
-                <button type="submit" class="btn btn-primary">Add Holiday</button>
+                <button style="padding: 8px 12px; margin-bottom: 20px;" type="submit" class="btn btn-primary">Add Holiday</button>
             </div>
         </form>
 
@@ -66,12 +66,12 @@
                                             <option value="{{ $type }}" @selected(($holiday->type ?: 'Other') === $type)>{{ $type }}</option>
                                         @endforeach
                                     </select>
-                                    <button type="submit" class="btn btn-secondary">Update</button>
+                                    <button style="padding: 8px 12px; margin-bottom: 12px;" type="submit" class="btn btn-secondary">Update</button>
                                 </form>
                                 <form method="POST" action="{{ route('holidays.destroy', $holiday) }}?{{ http_build_query(request()->only('q','page')) }}" class="holiday-delete-form" onsubmit="return confirm('Delete this holiday?');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                    <button style="padding: 8px 12px; margin-bottom: 12px;" type="submit" class="btn btn-danger">Delete</button>
                                 </form>
                             </div>
                         </td>
