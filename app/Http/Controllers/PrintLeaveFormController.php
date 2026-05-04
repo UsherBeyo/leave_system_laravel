@@ -24,7 +24,7 @@ class PrintLeaveFormController extends Controller
         $user = Auth::user();
         $employee = $leave->employee;
 
-        $allowed = in_array((string) $user->role, ['admin', 'hr', 'personnel', 'department_head', 'manager'], true)
+        $allowed = in_array((string) $user->role, ['admin', 'hr', 'personnel'], true)
             || ($employee && $user->employee && $user->employee->id === $employee->id);
         abort_unless($allowed, 403);
         abort_unless(strtolower((string) $leave->status) === 'approved' || strtolower((string) $leave->workflow_status) === 'finalized', 404);

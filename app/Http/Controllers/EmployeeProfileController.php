@@ -242,7 +242,7 @@ class EmployeeProfileController extends Controller
     {
         if (in_array($role, ['admin', 'hr', 'personnel'], true)) return true;
         if ($viewerEmployeeId && $viewerEmployeeId === $target->id) return true;
-        if ($role === 'manager') return true;
+        if ($role === 'manager') return $viewerEmployeeId && ((int) $viewerEmployeeId === (int) $target->id || (int) ($target->manager_id ?? 0) === (int) $viewerEmployeeId);
         if ($role === 'department_head') {
             $deptIds = DepartmentHeadAssignment::query()->where('employee_id', $viewerEmployeeId)->where('is_active', 1)->pluck('department_id');
             if ($deptIds->isNotEmpty()) return $deptIds->contains($target->department_id);

@@ -20,6 +20,7 @@ class LeaveRequestController extends Controller
     public function index(Request $request): View
     {
         $user=Auth::user(); $role=(string)$user->role;
+        abort_if($role === 'employee', 403);
         $allowedTabs=$role==='personnel'?['pending','approved','rejected']:(($role==='department_head')?['all','pending','approved','rejected']:['all','pending','approved','rejected','archived']);
         $tab=(string)$request->query('tab',$role==='personnel'?'pending':'all'); if(!in_array($tab,$allowedTabs,true)) $tab=$role==='personnel'?'pending':'all';
         $query=LeaveRequest::query()->with(['employee.user','leaveTypeRelation','attachments','form']);

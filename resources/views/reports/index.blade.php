@@ -5,11 +5,14 @@
     $isEmployeeReport = ($role ?? null) === 'employee';
     if ($reportType === 'leave_card' && $selectedEmployee) {
         $exportParams = $isEmployeeReport ? ['type' => 'leave_card', 'export' => 'xlsx'] : ['type' => 'leave_card', 'dept' => $departmentFilter, 'employee_id' => $selectedEmployee->id, 'export' => 'xlsx'];
+        $pdfExportParams = $isEmployeeReport ? ['type' => 'leave_card', 'export' => 'pdf'] : ['type' => 'leave_card', 'dept' => $departmentFilter, 'employee_id' => $selectedEmployee->id, 'export' => 'pdf'];
         $actions[] = '<a href="'.route('reports', array_filter($exportParams)).'" class="btn btn-secondary">Export Leave Card Excel</a>';
+        $actions[] = '<a href="'.route('reports', array_filter($pdfExportParams)).'" class="btn btn-secondary">Export Leave Card PDF</a>';
         if (!$isEmployeeReport) {
             $actions[] = '<a href="'.route('employee-profile', ['employee' => $selectedEmployee->id]).'" class="btn btn-ghost">Open Employee Profile</a>';
         }
     } elseif (in_array($reportType, ['balance','usage'], true)) {
+        $actions[] = '<a href="'.route('reports', array_filter(['type' => $reportType, 'dept' => $departmentFilter, 'export' => 'pdf'])).'" class="btn btn-secondary">Export PDF</a>';
         $actions[] = '<a href="'.route('reports', array_filter(['type' => $reportType, 'dept' => $departmentFilter, 'export' => 'csv'])).'" class="btn btn-secondary">Export CSV</a>';
     }
 @endphp

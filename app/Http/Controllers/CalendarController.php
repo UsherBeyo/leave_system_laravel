@@ -30,7 +30,7 @@ class CalendarController extends Controller
         $showSnapshotDetails = in_array($role, ['admin', 'personnel', 'hr'], true);
 
         $accessibleDepartmentIds = collect();
-        if (in_array($role, ['department_head', 'manager'], true) && $employee) {
+        if ($role === 'department_head' && $employee) {
             $accessibleDepartmentIds = DepartmentHeadAssignment::query()
                 ->where('employee_id', $employee->id)
                 ->where('is_active', 1)
@@ -46,9 +46,19 @@ class CalendarController extends Controller
             ->whereIn('status', ['approved', 'pending']);
 
         if (! $showFullCalendarLeaves) {
-            if (in_array($role, ['department_head', 'manager'], true)) {
+            if ($role === 'department_head') {
                 if ($accessibleDepartmentIds->isNotEmpty()) {
                     $leaveQuery->whereIn('department_id', $accessibleDepartmentIds->all());
+                } else {
+                    $leaveQuery->whereRaw('1 = 0');
+                }
+            } elseif ($role === 'manager') {
+                if ($employee?->id) {
+                    $managerId = (int) $employee->id;
+                    $leaveQuery->where(function ($scope) use ($managerId) {
+                        $scope->where('employee_id', $managerId)
+                            ->orWhereHas('employee', fn ($employeeQuery) => $employeeQuery->where('manager_id', $managerId));
+                    });
                 } else {
                     $leaveQuery->whereRaw('1 = 0');
                 }

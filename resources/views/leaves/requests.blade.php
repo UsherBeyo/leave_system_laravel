@@ -139,7 +139,7 @@
                                     @if(($row->workflow_status === 'finalized' || $row->status === 'approved') && in_array($role,['personnel','hr','admin']))
                                         <button type="button" class="btn btn-action-purple" onclick="event.preventDefault();openLeaveModal('{{ $openPrintModalId }}')">Customize Signatories &amp; Print</button>
                                     @endif
-                                    @if(($row->workflow_status === 'finalized' || $row->status === 'approved'))
+                                    @if(($row->workflow_status === 'finalized' || $row->status === 'approved') && in_array($role,['personnel','hr','admin']))
                                         <a href="{{ route('leave.print', ['leave' => $row->id]) }}" class="btn btn-action-amber" target="_blank" onclick="event.stopPropagation();">Open Print Form</a>
                                     @endif
                                 </div>
@@ -218,7 +218,7 @@
                             <div class="action-panel"><h4>Printing Status</h4><p>This request is already approved. Mark it as printed once the leave form or approval document has been released.</p><form method="POST" action="{{ route('leave.requests.action',$row) }}" class="request-actions request-actions-compact">@csrf<input type="hidden" name="action" value="mark_printed"><button class="btn btn-action-green" type="submit">Mark Printed</button></form></div>
                         @endif
 
-                        <div class="action-panel"><h4>Employee Shortcuts</h4><p>Open the employee profile, the employee’s full leave card, or the exact print form layout copied from the legacy capstone system.</p><div class="action-row"><a href="{{ route('employee-profile', ['employee' => $row->employee_id]) }}" class="btn btn-action-green">Employee Profile</a><a href="{{ route('reports', ['type' => 'leave_card', 'employee_id' => $row->employee_id]) }}" class="btn btn-primary">Open Full Leave Card</a>@if(($row->workflow_status === 'finalized' || $row->status === 'approved'))<a href="{{ route('leave.print', ['leave' => $row->id]) }}" class="btn btn-action-amber" target="_blank">Print Form</a>@endif</div></div>
+                        <div class="action-panel"><h4>Employee Shortcuts</h4><p>Open the employee profile or the employee’s full leave card.</p><div class="action-row"><a href="{{ route('employee-profile', ['employee' => $row->employee_id]) }}" class="btn btn-action-green">Employee Profile</a><a href="{{ route('reports', ['type' => 'leave_card', 'employee_id' => $row->employee_id]) }}" class="btn btn-primary">Open Full Leave Card</a>@if(($row->workflow_status === 'finalized' || $row->status === 'approved') && in_array($role,['personnel','hr','admin']))<a href="{{ route('leave.print', ['leave' => $row->id]) }}" class="btn btn-action-amber" target="_blank">Print Form</a>@endif</div></div>
                     </div>
                 </div>
             </details>

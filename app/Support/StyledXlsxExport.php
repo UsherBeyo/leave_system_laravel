@@ -11,12 +11,13 @@ class StyledXlsxExport
         $filename = self::safeFilename((string) ($config['filename'] ?? 'export'));
         $sheetTitle = self::sanitizeSheetTitle((string) ($config['sheet_title'] ?? 'Sheet1'));
         $employeeInfoRows = $config['employee_info_rows'] ?? [];
+        $infoTitle = (string) ($config['info_title'] ?? 'Employee Information');
         $tableTitle = (string) ($config['table_title'] ?? 'DATA');
         $tableHeaders = $config['table_headers'] ?? [];
         $tableRows = $config['table_rows'] ?? [];
         $columnWidths = $config['column_widths'] ?? [];
 
-        $sheetXml = self::buildWorksheetXml($employeeInfoRows, $tableTitle, $tableHeaders, $tableRows, $columnWidths);
+        $sheetXml = self::buildWorksheetXml($employeeInfoRows, $infoTitle, $tableTitle, $tableHeaders, $tableRows, $columnWidths);
         $files = [
             '[Content_Types].xml' => self::contentTypesXml(),
             '_rels/.rels' => self::rootRelsXml(),
@@ -38,7 +39,7 @@ class StyledXlsxExport
         ]);
     }
 
-    private static function buildWorksheetXml(array $infoRows, string $tableTitle, array $headers, array $tableRows, array $columnWidths): string
+    private static function buildWorksheetXml(array $infoRows, string $infoTitle, string $tableTitle, array $headers, array $tableRows, array $columnWidths): string
     {
         $rowsXml = [];
         $mergeRefs = [];
@@ -47,7 +48,7 @@ class StyledXlsxExport
         $currentRow = 1;
 
         $rowsXml[] = self::rowXml($currentRow, [
-            ['ref' => 'A' . $currentRow, 'value' => 'Employee Information', 'type' => 's', 'style' => 1],
+            ['ref' => 'A' . $currentRow, 'value' => $infoTitle, 'type' => 's', 'style' => 1],
         ]);
         $mergeRefs[] = 'A1:' . $lastCol . '1';
         $currentRow++;

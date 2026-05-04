@@ -24,7 +24,7 @@ class ReportsController extends Controller
     {
         $user = Auth::user();
         $employee = $user->employee;
-        abort_unless(in_array($user->role, ['admin', 'hr', 'personnel', 'department_head', 'employee'], true), 403);
+        abort_unless(in_array($user->role, ['admin', 'hr', 'personnel', 'department_head', 'manager', 'employee'], true), 403);
         if ($user->role === 'employee') {
             abort_unless($employee, 403);
         }
@@ -100,6 +100,16 @@ class ReportsController extends Controller
     {
         if ($role === 'employee') {
             $query = Employee::query()->where('id', $employeeId ?: 0);
+        } elseif ($role === 'manager') {
+            $query = Employee::query();
+            if ($employeeId) {
+                $query->where(function ($scope) use ($employeeId) {
+                    $scope->where('id', $employeeId)
+                        ->orWhere('manager_id', $employeeId);
+                });
+            } else {
+                $query->whereRaw('1 = 0');
+            }
         } elseif ($role === 'department_head') {
             $deptIds = DepartmentHeadAssignment::query()
                 ->where('employee_id', $employeeId)
