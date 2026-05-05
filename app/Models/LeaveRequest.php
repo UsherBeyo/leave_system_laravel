@@ -30,6 +30,8 @@ class LeaveRequest extends Model
     public function leaveTypeRelation() { return $this->belongsTo(LeaveType::class, 'leave_type_id'); }
     public function attachments() { return $this->hasMany(LeaveAttachment::class, 'leave_request_id'); }
     public function form() { return $this->hasOne(LeaveRequestForm::class, 'leave_request_id'); }
+    public function cancellations() { return $this->hasMany(LeaveCancellation::class, 'leave_request_id'); }
+    public function pendingCancellation() { return $this->hasOne(LeaveCancellation::class, 'leave_request_id')->where('status', 'pending'); }
     public function getLeaveTypeNameAttribute(): string { return $this->leaveTypeRelation?->name ?: (string) $this->leave_type; }
     public function getDetailsMetaAttribute(): array { $decoded = json_decode((string) $this->details_json, true); return is_array($decoded) ? $decoded : []; }
 }

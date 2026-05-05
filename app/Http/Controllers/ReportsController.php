@@ -141,7 +141,7 @@ class ReportsController extends Controller
     {
         if ($reportType === 'leave_card' && $selectedEmployee) {
             $filename = 'Leave Card - '.trim($selectedEmployee->fullName()).'.csv';
-            $headers = ['Date','Particulars','Vac Earned','Vac Deducted','Vac Balance','Sick Earned','Sick Deducted','Sick Balance','Status'];
+            $headers = ['Period','Particulars','Vac Earned','Vac Absence Undertime W/ Pay','Vac Balance','Vac Absence Undertime W/o Pay','Sick Earned','Sick Absence Undertime W/ Pay','Sick Balance','Sick Absence Undertime W/o Pay','Remarks'];
             $rows = $reportData;
         } elseif ($reportType === 'usage') {
             $filename = 'Leave Usage Report.csv';
@@ -159,8 +159,17 @@ class ReportsController extends Controller
             foreach ($rows as $row) {
                 if ($reportType === 'leave_card') {
                     fputcsv($out, [
-                        $row['date'] ?? '', $row['particulars'] ?? '', $row['vac_earned'] ?? '', $row['vac_deducted'] ?? '', $row['vac_balance'] ?? '',
-                        $row['sick_earned'] ?? '', $row['sick_deducted'] ?? '', $row['sick_balance'] ?? '', $row['status'] ?? '',
+                        $row['period'] ?? ($row['date'] ?? ''),
+                        $row['particulars'] ?? '',
+                        $row['vac_earned'] ?? '',
+                        $row['vac_with_pay'] ?? '',
+                        $row['vac_balance'] ?? '',
+                        $row['vac_without_pay'] ?? '',
+                        $row['sick_earned'] ?? '',
+                        $row['sick_with_pay'] ?? '',
+                        $row['sick_balance'] ?? '',
+                        $row['sick_without_pay'] ?? '',
+                        $row['remarks'] ?? ($row['status'] ?? ''),
                     ]);
                 } elseif ($reportType === 'usage') {
                     fputcsv($out, [$row['department'] ?? '', $row['leave_type'] ?? '', $row['count'] ?? 0, $row['total_days'] ?? 0]);

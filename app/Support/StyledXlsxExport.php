@@ -16,8 +16,9 @@ class StyledXlsxExport
         $tableHeaders = $config['table_headers'] ?? [];
         $tableRows = $config['table_rows'] ?? [];
         $columnWidths = $config['column_widths'] ?? [];
+        $tableHeaderHeight = $config['table_header_height'] ?? null;
 
-        $sheetXml = self::buildWorksheetXml($employeeInfoRows, $infoTitle, $tableTitle, $tableHeaders, $tableRows, $columnWidths);
+        $sheetXml = self::buildWorksheetXml($employeeInfoRows, $infoTitle, $tableTitle, $tableHeaders, $tableRows, $columnWidths, $tableHeaderHeight);
         $files = [
             '[Content_Types].xml' => self::contentTypesXml(),
             '_rels/.rels' => self::rootRelsXml(),
@@ -39,7 +40,7 @@ class StyledXlsxExport
         ]);
     }
 
-    private static function buildWorksheetXml(array $infoRows, string $infoTitle, string $tableTitle, array $headers, array $tableRows, array $columnWidths): string
+    private static function buildWorksheetXml(array $infoRows, string $infoTitle, string $tableTitle, array $headers, array $tableRows, array $columnWidths, mixed $tableHeaderHeight = null): string
     {
         $rowsXml = [];
         $mergeRefs = [];
@@ -75,12 +76,13 @@ class StyledXlsxExport
         $currentRow++;
 
         $headerCells = [];
+        $headerStyle = $tableHeaderHeight !== null ? 7 : 4;
         foreach ($headers as $index => $header) {
             $col = self::colLetters($index + 1);
-            $headerCells[] = ['ref' => $col . $currentRow, 'value' => $header, 'type' => 's', 'style' => 4];
+            $headerCells[] = ['ref' => $col . $currentRow, 'value' => $header, 'type' => 's', 'style' => $headerStyle];
         }
         if (!empty($headerCells)) {
-            $rowsXml[] = self::rowXml($currentRow, $headerCells);
+            $rowsXml[] = self::rowXml($currentRow, $headerCells, $tableHeaderHeight);
             $currentRow++;
         }
 
@@ -131,9 +133,14 @@ class StyledXlsxExport
             . '</worksheet>';
     }
 
-    private static function rowXml(int $rowNum, array $cells): string
+    private static function rowXml(int $rowNum, array $cells, mixed $height = null): string
     {
-        $xml = '<row r="' . $rowNum . '">';
+        $heightAttr = '';
+        if ($height !== null && is_numeric($height) && (float) $height > 0) {
+            $heightAttr = ' ht="' . self::xml((string) $height) . '" customHeight="1"';
+        }
+
+        $xml = '<row r="' . $rowNum . '"' . $heightAttr . '>';
         foreach ($cells as $cell) {
             $ref = $cell['ref'];
             $style = (int) ($cell['style'] ?? 0);
@@ -169,7 +176,7 @@ class StyledXlsxExport
             . '<border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border>'
             . '</borders>'
             . '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-            . '<cellXfs count="7">'
+            . '<cellXfs count="8">'
             . '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
             . '<xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="left" vertical="center"/></xf>'
             . '<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"><alignment horizontal="left" vertical="center"/></xf>'
@@ -177,6 +184,7 @@ class StyledXlsxExport
             . '<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>'
             . '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>'
             . '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"><alignment horizontal="right" vertical="center"/></xf>'
+            . '<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
             . '</cellXfs>'
             . '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
             . '</styleSheet>';

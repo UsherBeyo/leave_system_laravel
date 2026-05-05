@@ -378,9 +378,15 @@ class EmployeeProfileController extends Controller
             $newAnnual = (float) $snapshots['annual_balance'];
 
             $meta = 'UT_DEDUCT=' . number_format($deduct, 3, '.', '') .
+                ';UT_WITH_PAY=' . number_format($withPay ? $deduct : 0, 3, '.', '') .
+                ';UT_WITHOUT_PAY=' . number_format($withPay ? 0 : $deduct, 3, '.', '') .
+                ';VAC_OLD=' . number_format((float) $snapshots['annual_balance'], 3, '.', '') .
+                ';VAC_NEW=' . number_format((float) $snapshots['annual_balance'], 3, '.', '') .
                 ';VAC=' . number_format((float) $snapshots['annual_balance'], 3, '.', '') .
                 ';SICK=' . number_format((float) $snapshots['sick_balance'], 3, '.', '') .
                 ';FORCE=' . number_format((float) $snapshots['force_balance'], 3, '.', '') .
+                ';TOTAL_MINUTES=' . (($hours * 60) + $minutes) .
+                ';DATES=' . \Carbon\Carbon::parse($data['start_date'])->format('m/d') .
                 ';H=' . $hours .
                 ';M=' . $minutes;
 

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class NotificationService
 {
@@ -15,6 +16,7 @@ class NotificationService
 
         $counts = [
             'leave_requests' => 0,
+            'leave_cancellations' => 0,
             'apply_leave' => 0,
         ];
 
@@ -47,6 +49,11 @@ class NotificationService
                 ->where('workflow_status', 'pending_personnel')
                 ->where('status', 'pending')
                 ->count();
+            if (Schema::hasTable('leave_cancellations')) {
+                $counts['leave_cancellations'] = (int) DB::table('leave_cancellations')
+                    ->where('status', 'pending')
+                    ->count();
+            }
             return $counts;
         }
 
@@ -54,7 +61,19 @@ class NotificationService
             $counts['leave_requests'] = (int) DB::table('leave_requests')
                 ->where('status', 'pending')
                 ->count();
+            if (Schema::hasTable('leave_cancellations')) {
+                $counts['leave_cancellations'] = (int) DB::table('leave_cancellations')
+                    ->where('status', 'pending')
+                    ->count();
+            }
             return $counts;
+        }
+
+        if ($role === 'employee' && $employeeRow && Schema::hasTable('leave_cancellations')) {
+            $counts['leave_cancellations'] = (int) DB::table('leave_cancellations')
+                ->where('employee_id', (int) $employeeRow->id)
+                ->where('status', 'pending')
+                ->count();
         }
 
         return $counts;
@@ -97,10 +116,33 @@ class NotificationService
                     }
                 }
 
-                $count = (int) DB::table('leave_requests')
-                    ->where('employee_id', $empId)
-                    ->where('status', 'pending')
-                    ->count();
+                if (Schema::hasTable('leave_cancellations')) {
+                    $cancellationRows = DB::table('leave_cancellations as lc')
+                        ->join('leave_requests as lr', 'lr.id', '=', 'lc.leave_request_id')
+                        ->leftJoin('leave_types as lt', 'lt.id', '=', 'lr.leave_type_id')
+                        ->select('lc.*', 'lr.start_date', 'lr.end_date', 'lr.leave_type', DB::raw('COALESCE(lt.name, lr.leave_type) AS leave_type_name'))
+                        ->where('lc.employee_id', $empId)
+                        ->orderByRaw('COALESCE(lc.reviewed_at, lc.created_at) DESC')
+                        ->orderByDesc('lc.id')
+                        ->limit(10)
+                        ->get()
+                        ->map(fn ($row) => (array) $row)
+                        ->all();
+
+                    foreach ($cancellationRows as $row) {
+                        $status = strtolower((string) ($row['status'] ?? ''));
+                        if ($status === 'pending') {
+                            $this->pushUnique($items, $this->buildCancellationItem($row, 'Cancellation pending', 'Your leave cancellation request is waiting for Personnel review.', (string) ($row['created_at'] ?? ''), 'warning'));
+                        } elseif ($status === 'approved') {
+                            $this->pushUnique($items, $this->buildCancellationItem($row, 'Cancellation approved', 'Your leave cancellation was approved and balances were restored where applicable.', (string) ($row['reviewed_at'] ?? $row['updated_at'] ?? $row['created_at'] ?? ''), 'success'));
+                        } elseif ($status === 'rejected') {
+                            $this->pushUnique($items, $this->buildCancellationItem($row, 'Cancellation rejected', 'Your leave cancellation request was rejected.', (string) ($row['reviewed_at'] ?? $row['updated_at'] ?? $row['created_at'] ?? ''), 'danger'));
+                        }
+                    }
+                }
+
+                $summary = $this->sidebarCounts($user);
+                $count = (int) ($summary['leave_requests'] ?? 0) + (int) ($summary['leave_cancellations'] ?? 0);
             }
         } elseif ($role === 'department_head') {
             $deptIds = $this->departmentIdsForUser($user);
@@ -163,7 +205,7 @@ class NotificationService
             }
         } else {
             $summary = $this->sidebarCounts($user);
-            $count = (int) ($summary['leave_requests'] ?? 0);
+            $count = (int) ($summary['leave_requests'] ?? 0) + (int) ($summary['leave_cancellations'] ?? 0);
 
             $query = DB::table('leave_requests as lr')
                 ->join('employees as e', 'e.id', '=', 'lr.employee_id')
@@ -198,6 +240,33 @@ class NotificationService
                     $this->pushUnique($items, $this->buildItem($row, 'Rejected', $emp . "'s leave request was rejected.", (string) ($row['personnel_checked_at'] ?? $row['department_head_approved_at'] ?? $row['created_at'] ?? ''), $user, 'danger'));
                 } elseif ($role === 'admin' && $workflow === 'pending_department_head' && $status === 'pending') {
                     $this->pushUnique($items, $this->buildItem($row, 'New request submitted', $emp . ' submitted ' . ($row['leave_type_name'] ?? 'a leave request') . '.', (string) ($row['created_at'] ?? ''), $user, 'info'));
+                }
+            }
+
+            if (Schema::hasTable('leave_cancellations')) {
+                $cancellationRows = DB::table('leave_cancellations as lc')
+                    ->join('leave_requests as lr', 'lr.id', '=', 'lc.leave_request_id')
+                    ->join('employees as e', 'e.id', '=', 'lc.employee_id')
+                    ->leftJoin('leave_types as lt', 'lt.id', '=', 'lr.leave_type_id')
+                    ->select('lc.*', 'lr.start_date', 'lr.end_date', 'lr.leave_type', 'e.first_name', 'e.last_name', DB::raw('COALESCE(lt.name, lr.leave_type) AS leave_type_name'))
+                    ->orderByRaw("CASE WHEN lc.status = 'pending' THEN 0 ELSE 1 END")
+                    ->orderByRaw('COALESCE(lc.reviewed_at, lc.created_at) DESC')
+                    ->orderByDesc('lc.id')
+                    ->limit(10)
+                    ->get()
+                    ->map(fn ($row) => (array) $row)
+                    ->all();
+
+                foreach ($cancellationRows as $row) {
+                    $emp = trim(((string) ($row['first_name'] ?? '')) . ' ' . ((string) ($row['last_name'] ?? '')));
+                    $status = strtolower((string) ($row['status'] ?? ''));
+                    if ($status === 'pending') {
+                        $this->pushUnique($items, $this->buildCancellationItem($row, 'Cancellation needs review', $emp . ' requested leave cancellation.', (string) ($row['created_at'] ?? ''), 'warning'));
+                    } elseif ($status === 'approved') {
+                        $this->pushUnique($items, $this->buildCancellationItem($row, 'Cancellation approved', $emp . "'s leave cancellation was approved.", (string) ($row['reviewed_at'] ?? $row['updated_at'] ?? $row['created_at'] ?? ''), 'success'));
+                    } elseif ($status === 'rejected') {
+                        $this->pushUnique($items, $this->buildCancellationItem($row, 'Cancellation rejected', $emp . "'s leave cancellation was rejected.", (string) ($row['reviewed_at'] ?? $row['updated_at'] ?? $row['created_at'] ?? ''), 'danger'));
+                    }
                 }
             }
         }
@@ -296,6 +365,25 @@ class NotificationService
         }
 
         return route('leave.requests', $params);
+    }
+
+    protected function buildCancellationItem(array $row, string $title, string $message, string $when, string $tone = 'info'): array
+    {
+        $employeeName = trim(((string) ($row['first_name'] ?? '')) . ' ' . ((string) ($row['last_name'] ?? '')));
+        return [
+            'key' => 'cancel-' . ((string) ($row['id'] ?? uniqid('cancel_', true))) . '|' . $title,
+            'request_id' => (int) ($row['leave_request_id'] ?? 0),
+            'title' => $title,
+            'message' => $message,
+            'when' => $when,
+            'when_text' => $this->formatTime($when),
+            'when_ts' => ($when && strtotime($when)) ? (int) strtotime($when) : 0,
+            'tone' => $tone,
+            'employee_name' => $employeeName,
+            'leave_type_name' => (string) ($row['leave_type_name'] ?? $row['leave_type'] ?? 'Leave request'),
+            'href' => route('leave.cancellations'),
+            'tab' => 'cancellations',
+        ];
     }
 
     protected function buildItem(array $row, string $title, string $message, string $when, User $user, string $tone = 'info'): array

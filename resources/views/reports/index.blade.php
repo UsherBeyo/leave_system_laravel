@@ -19,7 +19,7 @@
 @push('head')
 <style>
 .report-shell{display:flex;flex-direction:column;gap:18px}.report-filter-card{padding:20px 22px}.report-filter-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;align-items:end}.report-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px}.report-value{font-size:28px;font-weight:800;color:var(--text)}.report-table-actions{display:flex;gap:8px;flex-wrap:wrap}.report-empty{padding:36px;border:1px dashed var(--border);background:#fff;border-radius:18px;text-align:center;color:var(--muted)}
-.ledger-wrap{overflow:auto}.ledger-wrap table{min-width:980px}.summary-pill{display:inline-flex;padding:8px 12px;border-radius:999px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-size:12px;font-weight:700}
+.ledger-wrap{overflow:auto}.ledger-wrap table{min-width:1320px}.summary-pill{display:inline-flex;padding:8px 12px;border-radius:999px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-size:12px;font-weight:700}
 </style>
 @endpush
 @section('content')
@@ -155,22 +155,24 @@
                 </div>
                 <div class="ledger-wrap">
                     <table class="clean-table">
-                        <thead><tr><th>Date</th><th>Particulars</th><th>Vac Earned</th><th>Vac Deducted</th><th>Vac Balance</th><th>Sick Earned</th><th>Sick Deducted</th><th>Sick Balance</th><th>Status</th></tr></thead>
+                        <thead><tr><th>Period</th><th>Particulars</th><th>Vac Earned</th><th>Vac Absence Undertime W/ Pay</th><th>Vac Balance</th><th>Vac Absence Undertime W/o Pay</th><th>Sick Earned</th><th>Sick Absence Undertime W/ Pay</th><th>Sick Balance</th><th>Sick Absence Undertime W/o Pay</th><th>Remarks</th></tr></thead>
                         <tbody>
                         @forelse($reportData as $row)
                             <tr>
-                                <td>{{ $row['date'] }}</td>
+                                <td>{{ $row['period'] ?? $row['date'] }}</td>
                                 <td>{{ $row['particulars'] }}</td>
                                 <td>{{ ($row['vac_earned'] ?? 0) != 0 ? number_format((float)$row['vac_earned'],3) : '' }}</td>
-                                <td>{{ ($row['vac_deducted'] ?? 0) != 0 ? number_format((float)$row['vac_deducted'],3) : '' }}</td>
+                                <td>{{ ($row['vac_with_pay'] ?? 0) != 0 ? number_format((float)$row['vac_with_pay'],3) : '' }}</td>
                                 <td>{{ $row['vac_balance'] === '' ? '' : number_format((float)$row['vac_balance'],3) }}</td>
+                                <td>{{ ($row['vac_without_pay'] ?? 0) != 0 ? number_format((float)$row['vac_without_pay'],3) : '' }}</td>
                                 <td>{{ ($row['sick_earned'] ?? 0) != 0 ? number_format((float)$row['sick_earned'],3) : '' }}</td>
-                                <td>{{ ($row['sick_deducted'] ?? 0) != 0 ? number_format((float)$row['sick_deducted'],3) : '' }}</td>
+                                <td>{{ ($row['sick_with_pay'] ?? 0) != 0 ? number_format((float)$row['sick_with_pay'],3) : '' }}</td>
                                 <td>{{ $row['sick_balance'] === '' ? '' : number_format((float)$row['sick_balance'],3) }}</td>
-                                <td>{{ $row['status'] }}</td>
+                                <td>{{ ($row['sick_without_pay'] ?? 0) != 0 ? number_format((float)$row['sick_without_pay'],3) : '' }}</td>
+                                <td>{{ $row['remarks'] ?? ($row['status'] ?? '') }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="9">No leave card history found for this employee.</td></tr>
+                            <tr><td colspan="11">No leave card history found for this employee.</td></tr>
                         @endforelse
                         </tbody>
                     </table>

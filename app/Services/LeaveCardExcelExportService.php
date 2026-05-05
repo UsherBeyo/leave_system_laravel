@@ -45,15 +45,17 @@ class LeaveCardExcelExportService
         $tableRows = [];
         foreach ($rows as $row) {
             $tableRows[] = [
-                $this->formatDate($row['date'] ?? ''),
+                $this->formatDate($row['period'] ?? ($row['date'] ?? '')),
                 (string) ($row['particulars'] ?? ''),
                 (float) ($row['vac_earned'] ?? 0) != 0.0 ? $this->trunc3($row['vac_earned']) : '',
-                (float) ($row['vac_deducted'] ?? 0) != 0.0 ? $this->trunc3($row['vac_deducted']) : '',
+                (float) ($row['vac_with_pay'] ?? 0) != 0.0 ? $this->trunc3($row['vac_with_pay']) : '',
                 ($row['vac_balance'] ?? '') === '' ? '' : $this->trunc3($row['vac_balance']),
+                (float) ($row['vac_without_pay'] ?? 0) != 0.0 ? $this->trunc3($row['vac_without_pay']) : '',
                 (float) ($row['sick_earned'] ?? 0) != 0.0 ? $this->trunc3($row['sick_earned']) : '',
-                (float) ($row['sick_deducted'] ?? 0) != 0.0 ? $this->trunc3($row['sick_deducted']) : '',
+                (float) ($row['sick_with_pay'] ?? 0) != 0.0 ? $this->trunc3($row['sick_with_pay']) : '',
                 ($row['sick_balance'] ?? '') === '' ? '' : $this->trunc3($row['sick_balance']),
-                (string) ($row['status'] ?? ''),
+                (float) ($row['sick_without_pay'] ?? 0) != 0.0 ? $this->trunc3($row['sick_without_pay']) : '',
+                (string) ($row['remarks'] ?? ($row['status'] ?? '')),
             ];
         }
 
@@ -62,9 +64,22 @@ class LeaveCardExcelExportService
             'sheet_title' => $leaveCardFilename,
             'employee_info_rows' => $employeeInfoRows,
             'table_title' => 'LEAVE CARD TRANSACTIONS',
-            'table_headers' => ['Date', 'Particulars', 'Vac Earned', 'Vac Deducted', 'Vac Balance', 'Sick Earned', 'Sick Deducted', 'Sick Balance', 'Status'],
+            'table_headers' => [
+                'Period',
+                'Particulars',
+                'Vac Earned',
+                "Vac Absence\nUndertime\nW/ Pay",
+                'Vac Balance',
+                "Vac Absence\nUndertime\nW/o Pay",
+                'Sick Earned',
+                "Sick Absence\nUndertime\nW/ Pay",
+                'Sick Balance',
+                "Sick Absence\nUndertime\nW/o Pay",
+                'Remarks',
+            ],
             'table_rows' => $tableRows,
-            'column_widths' => [18, 32, 11, 13, 16, 12, 14, 12, 15],
+            'table_header_height' => 48,
+            'column_widths' => [16, 28, 11, 15, 13, 15, 11, 15, 13, 15, 18],
         ]);
     }
 

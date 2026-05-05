@@ -10,6 +10,7 @@ use App\Http\Controllers\EmployeeManagementController;
 use App\Http\Controllers\EmployeeProfileController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\LeaveApplicationController;
+use App\Http\Controllers\LeaveCancellationController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\LeaveTypeManagementController;
 use App\Http\Controllers\PlaceholderController;
@@ -58,6 +59,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/leave/requests', [LeaveRequestController::class, 'index'])->name('leave.requests');
     Route::post('/leave/requests/{leave}/action', [LeaveRequestController::class, 'action'])->name('leave.requests.action');
+
+    Route::get('/leave/cancellations', [LeaveCancellationController::class, 'index'])->name('leave.cancellations');
+    Route::post('/leave/cancellations/{leave}/request', [LeaveCancellationController::class, 'store'])->name('leave.cancellations.store');
+    Route::post('/leave/cancellations/{cancellation}/action', [LeaveCancellationController::class, 'action'])->name('leave.cancellations.action');
 
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
     Route::get('/reports', [ReportsController::class, 'index'])->name('reports');

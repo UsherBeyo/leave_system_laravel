@@ -32,6 +32,16 @@
             </a>
         @endif
 
+        @if($role === 'employee')
+            <a href="{{ route('leave.cancellations') }}" class="sidebar-link {{ request()->routeIs('leave.cancellations') ? 'active' : '' }}">
+                <span class="sidebar-link-icon">
+                    <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.536-10.95a1 1 0 00-1.414-1.414L10 7.757 7.879 5.636A1 1 0 106.464 7.05L8.586 9.17l-2.122 2.122a1 1 0 101.415 1.414L10 10.586l2.121 2.12a1 1 0 001.415-1.413L11.414 9.17l2.122-2.121z" clip-rule="evenodd"/></svg>
+                </span>
+                <span>Leave Cancellation</span>
+                @if(!empty($sidebarNotificationCounts['leave_cancellations']))<span class="sidebar-badge">{{ (int) $sidebarNotificationCounts['leave_cancellations'] }}</span>@endif
+            </a>
+        @endif
+
         @if(in_array($role,['employee','manager','department_head','hr','personnel','admin'], true))
             <a href="{{ route('calendar') }}" class="sidebar-link {{ request()->routeIs('calendar') ? 'active' : '' }}">
                 <span class="sidebar-link-icon">
@@ -99,6 +109,16 @@
                         <span>Statistics</span>
                     </a>
                     @endif
+                @endif
+
+                @if(in_array($role,['personnel','admin','hr'], true))
+                    <a href="{{ route('leave.cancellations') }}" class="sidebar-link {{ request()->routeIs('leave.cancellations') ? 'active' : '' }}">
+                        <span class="sidebar-link-icon">
+                            <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.536-10.95a1 1 0 00-1.414-1.414L10 7.757 7.879 5.636A1 1 0 106.464 7.05L8.586 9.17l-2.122 2.122a1 1 0 101.415 1.414L10 10.586l2.121 2.12a1 1 0 001.415-1.413L11.414 9.17l2.122-2.121z" clip-rule="evenodd"/></svg>
+                        </span>
+                        <span>Leave Cancellations</span>
+                        @if(!empty($sidebarNotificationCounts['leave_cancellations']))<span class="sidebar-badge">{{ (int) $sidebarNotificationCounts['leave_cancellations'] }}</span>@endif
+                    </a>
                 @endif
 
                 @if(in_array($role,['personnel','admin','hr'], true))

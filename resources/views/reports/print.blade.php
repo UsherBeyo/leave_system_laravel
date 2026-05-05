@@ -56,19 +56,21 @@
         <h2>Leave Card - {{ $selectedEmployee->fullName() }}</h2>
         <p class="meta">Department: {{ $selectedEmployee->department ?: '—' }} · Position: {{ $selectedEmployee->position ?: '—' }}</p>
         <table>
-            <thead><tr><th>Date</th><th>Particulars</th><th>Vac Earned</th><th>Vac Deducted</th><th>Vac Balance</th><th>Sick Earned</th><th>Sick Deducted</th><th>Sick Balance</th><th>Status</th></tr></thead>
+            <thead><tr><th>Period</th><th>Particulars</th><th>Vac Earned</th><th>Vac Absence Undertime W/ Pay</th><th>Vac Balance</th><th>Vac Absence Undertime W/o Pay</th><th>Sick Earned</th><th>Sick Absence Undertime W/ Pay</th><th>Sick Balance</th><th>Sick Absence Undertime W/o Pay</th><th>Remarks</th></tr></thead>
             <tbody>
                 @foreach($reportData as $row)
                     <tr>
-                        <td>{{ $row['date'] }}</td>
+                        <td>{{ $row['period'] ?? $row['date'] }}</td>
                         <td>{{ $row['particulars'] }}</td>
                         <td>{{ ($row['vac_earned'] ?? 0) != 0 ? number_format((float)$row['vac_earned'],3) : '' }}</td>
-                        <td>{{ ($row['vac_deducted'] ?? 0) != 0 ? number_format((float)$row['vac_deducted'],3) : '' }}</td>
+                        <td>{{ ($row['vac_with_pay'] ?? 0) != 0 ? number_format((float)$row['vac_with_pay'],3) : '' }}</td>
                         <td>{{ $row['vac_balance'] === '' ? '' : number_format((float)$row['vac_balance'],3) }}</td>
+                        <td>{{ ($row['vac_without_pay'] ?? 0) != 0 ? number_format((float)$row['vac_without_pay'],3) : '' }}</td>
                         <td>{{ ($row['sick_earned'] ?? 0) != 0 ? number_format((float)$row['sick_earned'],3) : '' }}</td>
-                        <td>{{ ($row['sick_deducted'] ?? 0) != 0 ? number_format((float)$row['sick_deducted'],3) : '' }}</td>
+                        <td>{{ ($row['sick_with_pay'] ?? 0) != 0 ? number_format((float)$row['sick_with_pay'],3) : '' }}</td>
                         <td>{{ $row['sick_balance'] === '' ? '' : number_format((float)$row['sick_balance'],3) }}</td>
-                        <td>{{ $row['status'] }}</td>
+                        <td>{{ ($row['sick_without_pay'] ?? 0) != 0 ? number_format((float)$row['sick_without_pay'],3) : '' }}</td>
+                        <td>{{ $row['remarks'] ?? ($row['status'] ?? '') }}</td>
                     </tr>
                 @endforeach
             </tbody>

@@ -26,7 +26,7 @@ class AppServiceProvider extends ServiceProvider
             if (!Auth::check()) {
                 $view->with([
                     'headerNotifications' => ['count' => 0, 'items' => [], 'latest_ts' => 0],
-                    'sidebarNotificationCounts' => ['leave_requests' => 0, 'apply_leave' => 0],
+                    'sidebarNotificationCounts' => ['leave_requests' => 0, 'leave_cancellations' => 0, 'apply_leave' => 0],
                 ]);
                 return;
             }

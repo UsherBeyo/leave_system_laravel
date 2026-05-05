@@ -68,20 +68,22 @@ class ReportsPdfExportService
 
     public function downloadLeaveCard(Employee $employee, array $leaveCardRows): Response
     {
-        $headers = ['Date', 'Particulars', 'Vac Earned', 'Vac Deducted', 'Vac Balance', 'Sick Earned', 'Sick Deducted', 'Sick Balance', 'Status'];
+        $headers = ['Period', 'Particulars', 'Vac Earned', 'Vac Absence Undertime W/ Pay', 'Vac Balance', 'Vac Absence Undertime W/o Pay', 'Sick Earned', 'Sick Absence Undertime W/ Pay', 'Sick Balance', 'Sick Absence Undertime W/o Pay', 'Remarks'];
         $rows = [];
 
         foreach ($leaveCardRows as $row) {
             $rows[] = [
-                $this->formatDate($row['date'] ?? ''),
+                $this->formatDate($row['period'] ?? ($row['date'] ?? '')),
                 (string) ($row['particulars'] ?? ''),
                 (float) ($row['vac_earned'] ?? 0) != 0.0 ? $this->trunc3($row['vac_earned']) : '',
-                (float) ($row['vac_deducted'] ?? 0) != 0.0 ? $this->trunc3($row['vac_deducted']) : '',
+                (float) ($row['vac_with_pay'] ?? 0) != 0.0 ? $this->trunc3($row['vac_with_pay']) : '',
                 ($row['vac_balance'] ?? '') === '' ? '' : $this->trunc3($row['vac_balance']),
+                (float) ($row['vac_without_pay'] ?? 0) != 0.0 ? $this->trunc3($row['vac_without_pay']) : '',
                 (float) ($row['sick_earned'] ?? 0) != 0.0 ? $this->trunc3($row['sick_earned']) : '',
-                (float) ($row['sick_deducted'] ?? 0) != 0.0 ? $this->trunc3($row['sick_deducted']) : '',
+                (float) ($row['sick_with_pay'] ?? 0) != 0.0 ? $this->trunc3($row['sick_with_pay']) : '',
                 ($row['sick_balance'] ?? '') === '' ? '' : $this->trunc3($row['sick_balance']),
-                (string) ($row['status'] ?? ''),
+                (float) ($row['sick_without_pay'] ?? 0) != 0.0 ? $this->trunc3($row['sick_without_pay']) : '',
+                (string) ($row['remarks'] ?? ($row['status'] ?? '')),
             ];
         }
 
@@ -97,7 +99,7 @@ class ReportsPdfExportService
                 ['Department', (string) ($employee->department ?: 'Unassigned')],
                 ['Generated', now()->format('F j, Y g:i A')],
             ],
-            columnWidths: [15, 26, 12, 13, 13, 12, 13, 13, 15],
+            columnWidths: [10, 20, 9, 17, 10, 17, 9, 17, 10, 17, 13],
             landscape: true
         );
     }
