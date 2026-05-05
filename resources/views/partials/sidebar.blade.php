@@ -2,6 +2,7 @@
     $role = auth()->user()->role;
     $currentRoute = optional(request()->route())->getName();
     $sidebarNotificationCounts = $sidebarNotificationCounts ?? ['leave_requests' => 0, 'apply_leave' => 0];
+    $canApproveLeaveRequests = auth()->user()?->canApproveLeaveRequests() ?? false;
 @endphp
 <aside class="sidebar">
     <nav class="sidebar-nav">
@@ -12,7 +13,7 @@
             <span>Dashboard</span>
         </a>
 
-        @if(in_array($role,['admin','manager','department_head','hr','personnel'], true))
+        @if(in_array($role,['admin','manager','department_head','hr','personnel'], true) || $canApproveLeaveRequests)
             <a href="{{ route('leave.requests') }}" class="sidebar-link {{ request()->routeIs('leave.requests') ? 'active' : '' }}">
                 <span class="sidebar-link-icon">
                     <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4z" clip-rule="evenodd"/></svg>
@@ -75,25 +76,29 @@
                     <span>Holidays</span>
                 </a>
 
-                @if($role === 'admin')
+                @if(in_array($role, ['admin','hr','personnel'], true))
                     <a href="{{ route('manage-accruals') }}" class="sidebar-link {{ request()->routeIs('manage-accruals') ? 'active' : '' }}">
                         <span class="sidebar-link-icon">
                             <svg fill="currentColor" viewBox="0 0 20 20"><path d="M8.5 10a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM12.5 10a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM16 10a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/></svg>
                         </span>
                         <span>Accruals</span>
                     </a>
+                    @if($role === 'admin')
                     <a href="{{ route('manage-leave-types') }}" class="sidebar-link {{ request()->routeIs('manage-leave-types') ? 'active' : '' }}">
                         <span class="sidebar-link-icon">
                             <svg fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 012-2h4l4 4h4a2 2 0 012 2v4a2 2 0 01-2 2h-4l-4-4H6a2 2 0 01-2-2V4z"/></svg>
                         </span>
                         <span>Leave Types</span>
                     </a>
+                    @endif
+                    @if($role === 'admin')
                     <a href="{{ route('statistics') }}" class="sidebar-link {{ request()->routeIs('statistics') ? 'active' : '' }}">
                         <span class="sidebar-link-icon">
                             <svg fill="currentColor" viewBox="0 0 20 20"><path d="M3 17a1 1 0 001 1h12a1 1 0 100-2H4a1 1 0 00-1 1zm2-3a1 1 0 011-1h1a1 1 0 011 1v1H5v-1zm4-4a1 1 0 011-1h1a1 1 0 011 1v5H9v-5zm4-3a1 1 0 011-1h1a1 1 0 011 1v8h-2V7z"/></svg>
                         </span>
                         <span>Statistics</span>
                     </a>
+                    @endif
                 @endif
 
                 @if(in_array($role,['personnel','admin','hr'], true))

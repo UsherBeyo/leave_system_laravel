@@ -186,9 +186,11 @@
             @csrf
 
             <div class="metric-grid">
-                <div class="metric-card"><div class="metric-label">Vacational Balance</div><div class="metric-value">{{ number_format((float)$employee->annual_balance,3) }}</div></div>
+                <div class="metric-card"><div class="metric-label">Vacation Balance</div><div class="metric-value">{{ number_format((float)$employee->annual_balance,3) }}</div></div>
                 <div class="metric-card"><div class="metric-label">Sick Balance</div><div class="metric-value">{{ number_format((float)$employee->sick_balance,3) }}</div></div>
                 <div class="metric-card"><div class="metric-label">Force Balance</div><div class="metric-value">{{ number_format((float)$employee->force_balance,3) }}</div></div>
+                <div class="metric-card"><div class="metric-label">Wellness Balance</div><div class="metric-value">{{ number_format((float)($employee->wellness_balance ?? 5),3) }}</div></div>
+                <div class="metric-card"><div class="metric-label">SPL Balance</div><div class="metric-value">{{ number_format((float)($employee->spl_balance ?? 3),3) }}</div></div>
             </div>
 
             <div class="form-grid">
@@ -196,6 +198,17 @@
                 <div class="field"><label>Filing Date</label><input type="date" name="filing_date" id="filing_date" value="{{ old('filing_date', now()->toDateString()) }}" required></div>
                 <div class="field"><label>Start Date</label><input type="date" name="start_date" id="start_date" value="{{ old('start_date') }}" required></div>
                 <div class="field"><label>End Date</label><input type="date" name="end_date" id="end_date" value="{{ old('end_date') }}" required></div>
+                <div class="field">
+                    <label>Approver / Signatory</label>
+                    <select name="approver_user_id" id="approver_user_id">
+                        <option value="">Use assigned department head</option>
+                        @foreach($approvers as $approver)
+                            @php $approverName = $approver->employee?->fullName() ?: $approver->email; @endphp
+                            <option value="{{ $approver->id }}" @selected(old('approver_user_id') == $approver->id)>{{ $approverName }} — {{ ucfirst(str_replace('_',' ', (string)$approver->role)) }}</option>
+                        @endforeach
+                    </select>
+                    <div class="help-text">Selected approver receives the department-head pending request and prints in the department-head name area.</div>
+                </div>
             </div>
 
             <div class="metric-grid">

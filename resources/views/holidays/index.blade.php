@@ -39,6 +39,12 @@
                 <label>Description</label>
                 <input type="text" name="description" class="form-control" value="{{ old('description') }}">
             </div>
+            <div class="holidays-form-group">
+                <label class="inline-check" style="font-weight:700;gap:8px;display:flex;align-items:center;margin-bottom:9px;">
+                    <input type="checkbox" name="is_recurring" value="1" @checked(old('is_recurring'))> Annually
+                </label>
+                <div class="help-text">Use this for holidays that repeat every year on the same month and day.</div>
+            </div>
             <div class="holidays-create-actions">
                 <button style="padding: 8px 12px; margin-bottom: 20px;" type="submit" class="btn btn-primary">Add Holiday</button>
             </div>
@@ -47,7 +53,7 @@
         <div class="table-wrap" id="holidayLiveSearchResults" style="margin-top:24px;">
             <table class="ui-table">
                 <thead>
-                    <tr><th>Date</th><th>Description</th><th>Type</th><th>Action</th></tr>
+                    <tr><th>Date</th><th>Description</th><th>Type</th><th>Annually</th><th>Action</th></tr>
                 </thead>
                 <tbody>
                 @forelse($holidays as $holiday)
@@ -55,6 +61,7 @@
                         <td>{{ optional($holiday->holiday_date)->format('Y-m-d') }}</td>
                         <td>{{ $holiday->description }}</td>
                         <td>{{ $holiday->type ?: 'Other' }}</td>
+                        <td>{{ $holiday->is_recurring ? 'Yes' : 'No' }}</td>
                         <td class="holiday-action-cell">
                             <div class="holiday-actions">
                                 <form method="POST" action="{{ route('holidays.update', $holiday) }}?{{ http_build_query(request()->only('q','page')) }}" class="holiday-update-form">
@@ -67,6 +74,7 @@
                                             <option value="{{ $type }}" @selected(($holiday->type ?: 'Other') === $type)>{{ $type }}</option>
                                         @endforeach
                                     </select>
+                                    <label class="inline-check" style="gap:6px;white-space:nowrap;"><input type="checkbox" name="is_recurring" value="1" @checked($holiday->is_recurring)> Annually</label>
                                     <button style="padding: 8px 12px; margin-bottom: 12px;" type="submit" class="btn btn-secondary">Update</button>
                                 </form>
                                 <form method="POST" action="{{ route('holidays.destroy', $holiday) }}?{{ http_build_query(request()->only('q','page')) }}" class="holiday-delete-form" onsubmit="return confirm('Delete this holiday?');">
@@ -78,7 +86,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="help-text">{{ $search !== '' ? 'No matching holidays found for this search.' : 'No holidays found.' }}</td></tr>
+                    <tr><td colspan="5" class="help-text">{{ $search !== '' ? 'No matching holidays found for this search.' : 'No holidays found.' }}</td></tr>
                 @endforelse
                 </tbody>
             </table>
@@ -94,7 +102,7 @@
 
 @push('head')
 <style>
-.holidays-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}.holidays-search-form{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.holidays-search-form .search-input{min-width:280px;flex:1}.holidays-create-form{display:grid;grid-template-columns:1fr 220px 1.2fr auto;gap:14px;align-items:end}.holidays-form-group{display:flex;flex-direction:column;gap:8px}.holidays-form-group label{font-size:13px;font-weight:700;color:var(--text)}.holidays-create-actions{display:flex;justify-content:flex-start;gap:8px;margin-top:4px}.holiday-action-cell{padding:8px 0}.holiday-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.holiday-update-form{display:flex;gap:6px;align-items:center;flex:1}.holiday-update-form input[type="date"]{width:140px;padding:8px 10px}.holiday-update-form input[type="text"]{flex:1;min-width:180px;padding:8px 10px}.holiday-update-form select{width:170px;padding:8px 10px}.holiday-delete-form{flex-shrink:0}.live-search-status{font-size:12px;color:var(--muted);min-width:74px}.live-search-loading{opacity:.55;pointer-events:none;transition:opacity .15s ease}@media (max-width:1024px){.holidays-create-form{grid-template-columns:1fr 1fr}.holidays-create-actions{grid-column:1 / -1}}@media (max-width:720px){.holidays-create-form{grid-template-columns:1fr}.holiday-actions,.holiday-update-form{flex-direction:column;align-items:stretch}.holiday-update-form input,.holiday-update-form select{width:100% !important}}
+.holidays-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}.holidays-search-form{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.holidays-search-form .search-input{min-width:280px;flex:1}.holidays-create-form{display:grid;grid-template-columns:1fr 220px 1.2fr 180px auto;gap:14px;align-items:end}.holidays-form-group{display:flex;flex-direction:column;gap:8px}.holidays-form-group label{font-size:13px;font-weight:700;color:var(--text)}.holidays-create-actions{display:flex;justify-content:flex-start;gap:8px;margin-top:4px}.holiday-action-cell{padding:8px 0}.holiday-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.holiday-update-form{display:flex;gap:6px;align-items:center;flex:1}.holiday-update-form input[type="date"]{width:140px;padding:8px 10px}.holiday-update-form input[type="text"]{flex:1;min-width:180px;padding:8px 10px}.holiday-update-form select{width:170px;padding:8px 10px}.holiday-delete-form{flex-shrink:0}.live-search-status{font-size:12px;color:var(--muted);min-width:74px}.live-search-loading{opacity:.55;pointer-events:none;transition:opacity .15s ease}@media (max-width:1024px){.holidays-create-form{grid-template-columns:1fr 1fr}.holidays-create-actions{grid-column:1 / -1}}@media (max-width:720px){.holidays-create-form{grid-template-columns:1fr}.holiday-actions,.holiday-update-form{flex-direction:column;align-items:stretch}.holiday-update-form input,.holiday-update-form select{width:100% !important}}
 </style>
 @endpush
 

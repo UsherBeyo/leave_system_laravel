@@ -91,7 +91,7 @@ class MonthlyAccrualService
 
                 BalanceLedger::logBudgetChange(
                     (int) $employee->id,
-                    'Vacational',
+                    'Vacation',
                     $oldAnnual,
                     $newAnnual,
                     'accrual',

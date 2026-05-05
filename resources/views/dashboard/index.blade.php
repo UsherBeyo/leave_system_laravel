@@ -52,14 +52,17 @@
 
     @if($employeeDashboard)
         <div class="metric-grid">
-            <div class="metric-card"><div class="metric-label">Annual Balance</div><div class="metric-value">{{ number_format($employeeDashboard['annual'],3) }}</div><div class="metric-sub">Your current annual leave balance</div></div>
+            <div class="metric-card"><div class="metric-label">Vacation Balance</div><div class="metric-value">{{ number_format($employeeDashboard['annual'],3) }}</div><div class="metric-sub">Your current vacation leave balance</div></div>
             <div class="metric-card"><div class="metric-label">Sick Balance</div><div class="metric-value">{{ number_format($employeeDashboard['sick'],3) }}</div><div class="metric-sub">Your current sick leave balance</div></div>
             <div class="metric-card"><div class="metric-label">Force Balance</div><div class="metric-value">{{ number_format($employeeDashboard['force'],3) }}</div><div class="metric-sub">Your current force leave balance</div></div>
+            <div class="metric-card"><div class="metric-label">Wellness Balance</div><div class="metric-value">{{ number_format($employeeDashboard['wellness'],3) }}</div><div class="metric-sub">Resets to 5.000 every year</div></div>
+            <div class="metric-card"><div class="metric-label">SPL Balance</div><div class="metric-value">{{ number_format($employeeDashboard['spl'],3) }}</div><div class="metric-sub">Special Privilege Leave balance</div></div>
+            <div class="metric-card"><div class="metric-label">CTO Balance</div><div class="metric-value">{{ number_format($employeeDashboard['cto'],3) }}</div><div class="metric-sub">Max 15.000 days</div></div>
             <div class="metric-card"><div class="metric-label">Pending Requests</div><div class="metric-value">{{ $employeeDashboard['pending_count'] }}</div><div class="metric-sub">Requests still in workflow</div></div>
         </div>
 
         <div class="metric-grid">
-            <div class="metric-card"><div class="metric-label">Annual Used This Month</div><div class="metric-value">{{ number_format($employeeDashboard['annual_used_this_month'],3) }}</div></div>
+            <div class="metric-card"><div class="metric-label">Vacation Used This Month</div><div class="metric-value">{{ number_format($employeeDashboard['annual_used_this_month'],3) }}</div></div>
             <div class="metric-card"><div class="metric-label">Sick Used This Month</div><div class="metric-value">{{ number_format($employeeDashboard['sick_used_this_month'],3) }}</div></div>
             <div class="metric-card"><div class="metric-label">Force Used This Year</div><div class="metric-value">{{ number_format($employeeDashboard['force_used_this_year'],3) }}</div></div>
             <div class="metric-card"><div class="metric-label">Approved This Month</div><div class="metric-value">{{ $employeeDashboard['approved_this_month'] }}</div></div>

@@ -21,6 +21,7 @@ class User extends Authenticatable
         'password',
         'role',
         'is_active',
+        'can_approve_leave_requests',
         'activation_token',
         'created_at',
     ];
@@ -34,6 +35,7 @@ class User extends Authenticatable
     {
         return [
             'is_active' => 'boolean',
+            'can_approve_leave_requests' => 'boolean',
             'created_at' => 'datetime',
             'password' => 'hashed',
         ];
@@ -42,5 +44,10 @@ class User extends Authenticatable
     public function employee(): HasOne
     {
         return $this->hasOne(Employee::class, 'user_id');
+    }
+
+    public function canApproveLeaveRequests(): bool
+    {
+        return (bool) $this->can_approve_leave_requests || in_array((string) $this->role, ['admin', 'manager', 'department_head'], true);
     }
 }

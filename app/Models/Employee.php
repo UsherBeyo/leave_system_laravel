@@ -14,7 +14,7 @@ class Employee extends Model
 
     protected $fillable = [
         'user_id','first_name','middle_name','last_name','department','department_id','manager_id','leave_balance',
-        'annual_balance','sick_balance','force_balance','profile_pic','position','status','civil_status',
+        'annual_balance','sick_balance','force_balance','wellness_balance','spl_balance','cto_balance','cto_first_earned_at','profile_pic','position','status','civil_status',
         'entrance_to_duty','unit','gsis_policy_no','national_reference_card_no','salary'
     ];
 
@@ -22,6 +22,10 @@ class Employee extends Model
         'annual_balance' => 'float',
         'sick_balance' => 'float',
         'force_balance' => 'float',
+        'wellness_balance' => 'float',
+        'spl_balance' => 'float',
+        'cto_balance' => 'float',
+        'cto_first_earned_at' => 'date',
         'leave_balance' => 'float',
         'salary' => 'float',
         'created_at' => 'datetime',

@@ -14,7 +14,7 @@
         ? ['pending','approved','rejected']
         : (($role === 'department_head') ? ['all','pending','approved','rejected'] : ['all','pending','approved','rejected','archived']);
     $formatDetailLabel = fn ($key) => ucwords(str_replace('_', ' ', (string) $key));
-    $balanceLabels = ['annual' => 'Vacational', 'sick' => 'Sick', 'force' => 'Force'];
+    $balanceLabels = ['annual' => 'Vacation', 'sick' => 'Sick', 'force' => 'Force'];
 @endphp
 
 @push('head')

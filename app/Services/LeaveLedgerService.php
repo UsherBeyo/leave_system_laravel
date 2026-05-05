@@ -119,7 +119,9 @@ class LeaveLedgerService
                 $vacDed = isset($meta['UT_DEDUCT']) ? (float) $meta['UT_DEDUCT'] : $deltaDed;
                 $vacBal = isset($meta['VAC_NEW']) ? (float) $meta['VAC_NEW'] : (isset($meta['VAC']) ? (float) $meta['VAC'] : $new);
                 $sickBal = isset($meta['SICK']) ? (float) $meta['SICK'] : '';
-                $particulars = 'Undertime '.($action === 'undertime_paid' ? '(With pay)' : '(Without pay)');
+                $dateLabel = isset($meta['DATES']) ? ' - ' . $meta['DATES'] : '';
+                $withoutPayLabel = isset($meta['UT_WITHOUT_PAY']) && (float) $meta['UT_WITHOUT_PAY'] > 0 ? ' / Without pay ' . number_format((float) $meta['UT_WITHOUT_PAY'], 3) : '';
+                $particulars = 'Undertime '.($action === 'undertime_paid' ? '(With pay)' : '(Without pay)') . $withoutPayLabel . $dateLabel;
             } elseif (str_contains($action, 'earning') || str_contains(strtolower($leaveType), 'accrual')) {
                 if ($this->policyService->normalizeLeaveTypeKey($leaveType) === 'sick leave') {
                     $sickEarn = $deltaEarn;
@@ -233,7 +235,7 @@ class LeaveLedgerService
     {
         $meta = [];
         $notes = (string) $notes;
-        if (preg_match_all('/([A-Z_]+)=([0-9.]+)/', $notes, $matches, PREG_SET_ORDER)) {
+        if (preg_match_all('/([A-Z_]+)=([^;]+)/', $notes, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $pair) {
                 $meta[$pair[1]] = $pair[2];
             }

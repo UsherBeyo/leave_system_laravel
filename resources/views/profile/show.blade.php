@@ -116,9 +116,12 @@
         <div class="page-header" style="margin-bottom:16px;"><div class="page-title-group"><h3 class="mt-0 mb-0">Leave Balances</h3><p class="page-subtitle">Current balances and all-time used totals based on recorded budget history.</p></div></div>
         @php
             $balanceCards = [
-                ['label' => 'Vacational', 'remaining' => (float)$employeeProfile->annual_balance, 'used' => (float)$used['annual']],
+                ['label' => 'Vacation', 'remaining' => (float)$employeeProfile->annual_balance, 'used' => (float)$used['annual']],
                 ['label' => 'Sick', 'remaining' => (float)$employeeProfile->sick_balance, 'used' => (float)$used['sick']],
                 ['label' => 'Force', 'remaining' => (float)$employeeProfile->force_balance, 'used' => (float)$used['force']],
+                ['label' => 'Wellness', 'remaining' => (float)($employeeProfile->wellness_balance ?? 5), 'used' => 0.0],
+                ['label' => 'SPL', 'remaining' => (float)($employeeProfile->spl_balance ?? 3), 'used' => 0.0],
+                ['label' => 'CTO', 'remaining' => (float)($employeeProfile->cto_balance ?? 0), 'used' => 0.0],
             ];
         @endphp
         <div class="employee-profile-balance-grid">
@@ -264,9 +267,12 @@
             @csrf
             <input type="hidden" name="employee_id" value="{{ $employeeProfile->id }}">
             <div class="profile-modal-grid">
-                <div class="field"><label>Vacational Balance</label><input type="number" step="0.001" name="annual_balance" value="{{ number_format((float)$employeeProfile->annual_balance,3,'.','') }}" required></div>
+                <div class="field"><label>Vacation Balance</label><input type="number" step="0.001" name="annual_balance" value="{{ number_format((float)$employeeProfile->annual_balance,3,'.','') }}" required></div>
                 <div class="field"><label>Sick Balance</label><input type="number" step="0.001" name="sick_balance" value="{{ number_format((float)$employeeProfile->sick_balance,3,'.','') }}" required></div>
                 <div class="field"><label>Force Balance</label><input type="number" step="0.001" name="force_balance" value="{{ number_format((float)$employeeProfile->force_balance,3,'.','') }}" required></div>
+                <div class="field"><label>Wellness Balance</label><input type="number" step="0.001" name="wellness_balance" value="{{ number_format((float)($employeeProfile->wellness_balance ?? 5),3,'.','') }}"></div>
+                <div class="field"><label>SPL Balance</label><input type="number" step="0.001" name="spl_balance" value="{{ number_format((float)($employeeProfile->spl_balance ?? 3),3,'.','') }}"></div>
+                <div class="field"><label>CTO Balance</label><input type="number" step="0.001" max="15" name="cto_balance" value="{{ number_format((float)($employeeProfile->cto_balance ?? 0),3,'.','') }}"></div>
             </div>
             <div class="profile-modal-actions">
                 <button type="submit" class="btn btn-primary">Update balances</button>
@@ -287,7 +293,7 @@
             <div class="field">
                 <label>Leave Type</label>
                 <select id="historyType" name="leave_type_id" required>
-                    <option value="0">Vacational Accrual Earned</option>
+                    <option value="0">Vacation Accrual Earned</option>
                     <option value="-1">Undertime</option>
                     @foreach($leaveTypes as $leaveType)
                         <option value="{{ $leaveType->id }}">{{ $leaveType->name }}</option>
@@ -313,7 +319,7 @@
             <hr class="profile-modal-divider">
             <p class="profile-modal-note">Optional: supply balances that were available at the time of this historical entry. Leave blank to use the employee's current balances.</p>
             <div class="profile-modal-grid">
-                <div class="field"><label>Vacational balance at time</label><input type="number" step="0.001" name="snapshot_annual_balance" value=""></div>
+                <div class="field"><label>Vacation balance at time</label><input type="number" step="0.001" name="snapshot_annual_balance" value=""></div>
                 <div class="field"><label>Sick balance at time</label><input type="number" step="0.001" name="snapshot_sick_balance" value=""></div>
                 <div class="field"><label>Force balance at time</label><input type="number" step="0.001" name="snapshot_force_balance" value=""></div>
             </div>
@@ -329,16 +335,19 @@
     <div class="modal-content profile-history-modal-content">
         <span class="modal-close" data-close="undertimeModal">&times;</span>
         <h3 style="margin-top:0;">Record Undertime</h3>
-        <p class="profile-modal-note">This applies the undertime deduction to the current Vacational Balance and logs the deduction.</p>
+        <p class="profile-modal-note">This applies one summed undertime deduction to the current Vacation Balance and logs the month/day dates in the leave card remarks.</p>
         <form method="POST" action="{{ route('employee-profile.undertime.store') }}">
             @csrf
             <input type="hidden" name="employee_id" value="{{ $employeeProfile->id }}">
-            <div class="profile-modal-grid">
-                <div class="field"><label>Date</label><input type="date" name="date" required></div>
-                <div class="field"><label>Hours</label><input type="number" step="1" name="hours" value="0" min="0"></div>
-                <div class="field"><label>Minutes</label><input type="number" step="1" name="undertime_minutes" value="0" min="0" max="60"></div>
+            <div id="undertimeRows" style="display:grid;gap:10px;">
+                <div class="profile-modal-grid undertime-row" data-undertime-row>
+                    <div class="field"><label>Date</label><input type="date" name="items[0][date]" required></div>
+                    <div class="field"><label>Hours</label><input type="number" step="1" name="items[0][hours]" value="0" min="0"></div>
+                    <div class="field"><label>Minutes</label><input type="number" step="1" name="items[0][undertime_minutes]" value="0" min="0" max="60"></div>
+                </div>
             </div>
-            <label class="inline-check" style="margin-top:12px;"><input type="checkbox" name="with_pay" value="1"> With pay</label>
+            <button type="button" class="btn btn-secondary" id="addUndertimeRow" style="margin-top:10px;">+ New Row</button>
+            <label class="inline-check" style="margin-top:12px;"><input type="checkbox" name="with_pay" value="1"> With pay if balance is enough</label>
             <div class="profile-modal-actions">
                 <button type="submit" class="btn btn-primary">Apply Deduction</button>
                 <button type="button" class="btn btn-secondary" data-close="undertimeModal">Cancel</button>
@@ -428,6 +437,27 @@
         historyType.addEventListener('change', updateHistoryForm);
         updateHistoryForm();
     }
+
+    var undertimeRows = document.getElementById('undertimeRows');
+    var addUndertimeRow = document.getElementById('addUndertimeRow');
+    if (undertimeRows && addUndertimeRow) {
+        addUndertimeRow.addEventListener('click', function(){
+            var index = undertimeRows.querySelectorAll('[data-undertime-row]').length;
+            var row = document.createElement('div');
+            row.className = 'profile-modal-grid undertime-row';
+            row.setAttribute('data-undertime-row', '1');
+            row.innerHTML = '<div class="field"><label>Date</label><input type="date" name="items['+index+'][date]" required></div>'+
+                '<div class="field"><label>Hours</label><input type="number" step="1" name="items['+index+'][hours]" value="0" min="0"></div>'+
+                '<div class="field"><label>Minutes</label><input type="number" step="1" name="items['+index+'][undertime_minutes]" value="0" min="0" max="60"></div>'+
+                '<div class="field" style="align-self:end;"><button type="button" class="btn btn-danger" data-remove-undertime-row>Remove</button></div>';
+            undertimeRows.appendChild(row);
+        });
+        undertimeRows.addEventListener('click', function(event){
+            var removeBtn = event.target.closest('[data-remove-undertime-row]');
+            if (removeBtn) removeBtn.closest('[data-undertime-row]')?.remove();
+        });
+    }
+
 })();
 </script>
 @endpush

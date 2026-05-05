@@ -19,13 +19,14 @@ class LeaveRequestController extends Controller
 
     public function index(Request $request): View
     {
-        $user=Auth::user(); $role=(string)$user->role;
-        abort_if($role === 'employee', 403);
-        $allowedTabs=$role==='personnel'?['pending','approved','rejected']:(($role==='department_head')?['all','pending','approved','rejected']:['all','pending','approved','rejected','archived']);
+        $user=Auth::user(); $role=(string)$user->role; $canApproveLeaveRequests = $user->canApproveLeaveRequests();
+        abort_if($role === 'employee' && !$canApproveLeaveRequests, 403);
+        $allowedTabs=$role==='personnel'?['pending','approved','rejected']:(($role==='department_head' || ($role==='employee' && $canApproveLeaveRequests))?['all','pending','approved','rejected']:['all','pending','approved','rejected','archived']);
         $tab=(string)$request->query('tab',$role==='personnel'?'pending':'all'); if(!in_array($tab,$allowedTabs,true)) $tab=$role==='personnel'?'pending':'all';
         $query=LeaveRequest::query()->with(['employee.user','leaveTypeRelation','attachments','form']);
-        if($role==='department_head'){ $deptIds=DepartmentHeadAssignment::query()->where('employee_id',$user->employee?->id)->where('is_active',1)->pluck('department_id'); if($deptIds->isEmpty() && $user->employee?->department_id) $deptIds=collect([$user->employee->department_id]); $query->whereIn('department_id',$deptIds); }
-        if($tab==='pending'){ if(in_array($role,['personnel','hr'],true)) $query->where('workflow_status','pending_personnel')->where('status','pending'); elseif(in_array($role,['department_head','manager'],true)) $query->whereIn('workflow_status',['pending_department_head','returned_by_personnel'])->where('status','pending'); else $query->where('status','pending'); }
+        if($role==='department_head'){ $deptIds=DepartmentHeadAssignment::query()->where('employee_id',$user->employee?->id)->where('is_active',1)->pluck('department_id'); if($deptIds->isEmpty() && $user->employee?->department_id) $deptIds=collect([$user->employee->department_id]); $query->where(function($scope) use ($deptIds, $user){ $scope->whereIn('department_id',$deptIds)->orWhere('department_head_user_id',$user->id); }); }
+        elseif($role==='employee' && $canApproveLeaveRequests){ $query->where('department_head_user_id',$user->id); }
+        if($tab==='pending'){ if(in_array($role,['personnel','hr'],true)) $query->where('workflow_status','pending_personnel')->where('status','pending'); elseif(in_array($role,['department_head','manager'],true) || ($role==='employee' && $canApproveLeaveRequests)) $query->whereIn('workflow_status',['pending_department_head','returned_by_personnel'])->where('status','pending'); else $query->where('status','pending'); }
         elseif($tab==='approved') $query->where(function($q){$q->where('workflow_status','finalized')->orWhere('status','approved');});
         elseif($tab==='rejected') $query->where('status','rejected');
         elseif($tab==='archived') $query->whereIn('workflow_status',['finalized','rejected_department_head','rejected_personnel']);
@@ -79,7 +80,7 @@ class LeaveRequestController extends Controller
         try {
             switch($data['action']){
                 case 'approve':
-                    if(($leave->workflow_status==='pending_department_head' || blank($leave->workflow_status) || $leave->workflow_status==='returned_by_personnel') && in_array($user->role,['department_head','manager','admin'],true)){ $this->workflow->departmentHeadApprove($leave,$user->id,(string)($data['comments']??'')); $message='Leave approved by Department Head and forwarded to Personnel'; }
+                    if(($leave->workflow_status==='pending_department_head' || blank($leave->workflow_status) || $leave->workflow_status==='returned_by_personnel') && (in_array($user->role,['department_head','manager','admin'],true) || ($user->canApproveLeaveRequests() && (int)$leave->department_head_user_id === (int)$user->id))){ $this->workflow->departmentHeadApprove($leave,$user->id,(string)($data['comments']??'')); $message='Leave approved by Department Head and forwarded to Personnel'; }
                     elseif(in_array($user->role,['personnel','hr','admin'],true)){
                         $approvalOptions = [];
                         foreach (['approved_with_pay', 'approved_without_pay', 'deduct_days'] as $field) {
@@ -89,7 +90,7 @@ class LeaveRequestController extends Controller
                         }
                         $this->workflow->finalApprove($leave,$user->id,(string)($data['comments']??''),$approvalOptions); $message='Leave request finalized and approved'; }
                     else abort(403); break;
-                case 'reject': if(!in_array($user->role,['department_head','manager','personnel','hr','admin'],true)) abort(403); $this->workflow->reject($leave,$user->id,(string)$user->role,(string)($data['comments']??'')); $message='Leave request rejected'; break;
+                case 'reject': if(!in_array($user->role,['department_head','manager','personnel','hr','admin'],true) && !($user->canApproveLeaveRequests() && (int)$leave->department_head_user_id === (int)$user->id)) abort(403); $this->workflow->reject($leave,$user->id,(string)$user->role,(string)($data['comments']??'')); $message='Leave request rejected'; break;
                 case 'return': if(!in_array($user->role,['personnel','hr','admin'],true)) abort(403); $this->workflow->returnToDepartmentHead($leave,$user->id,(string)($data['comments']??'')); $message='Leave request returned to Department Head'; break;
                 case 'mark_printed': if(!in_array($user->role,['personnel','hr','admin'],true)) abort(403); $this->workflow->markPrinted($leave); $message='Leave request marked as printed'; break;
                 default: $message='No action performed';

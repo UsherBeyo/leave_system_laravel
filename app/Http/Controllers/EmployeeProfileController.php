@@ -114,6 +114,9 @@ class EmployeeProfileController extends Controller
             'annual_balance' => ['required', 'numeric', 'min:0'],
             'sick_balance' => ['required', 'numeric', 'min:0'],
             'force_balance' => ['required', 'numeric', 'min:0'],
+            'wellness_balance' => ['nullable', 'numeric', 'min:0'],
+            'spl_balance' => ['nullable', 'numeric', 'min:0'],
+            'cto_balance' => ['nullable', 'numeric', 'min:0', 'max:15'],
         ]);
 
         $employee = Employee::query()->findOrFail((int) $data['employee_id']);
@@ -123,15 +126,24 @@ class EmployeeProfileController extends Controller
             $oldAnnual = (float) $employee->annual_balance;
             $oldSick = (float) $employee->sick_balance;
             $oldForce = (float) $employee->force_balance;
+            $oldWellness = (float) ($employee->wellness_balance ?? 0);
+            $oldSpl = (float) ($employee->spl_balance ?? 0);
+            $oldCto = (float) ($employee->cto_balance ?? 0);
 
             $newAnnual = $this->trunc3((float) $data['annual_balance']);
             $newSick = $this->trunc3((float) $data['sick_balance']);
             $newForce = $this->trunc3((float) $data['force_balance']);
+            $newWellness = $this->trunc3((float) ($data['wellness_balance'] ?? $oldWellness));
+            $newSpl = $this->trunc3((float) ($data['spl_balance'] ?? $oldSpl));
+            $newCto = min(15.0, $this->trunc3((float) ($data['cto_balance'] ?? $oldCto)));
 
             $employee->update([
                 'annual_balance' => $newAnnual,
                 'sick_balance' => $newSick,
                 'force_balance' => $newForce,
+                'wellness_balance' => $newWellness,
+                'spl_balance' => $newSpl,
+                'cto_balance' => $newCto,
             ]);
 
             if ($this->balancesDiffer($oldAnnual, $newAnnual)) {
@@ -143,6 +155,15 @@ class EmployeeProfileController extends Controller
             if ($this->balancesDiffer($oldForce, $newForce)) {
                 BalanceLedger::logBudgetChange($employee->id, 'Force', $oldForce, $newForce, 'adjustment', null, 'Admin/personnel manual adjustment');
             }
+            if ($this->balancesDiffer($oldWellness, $newWellness)) {
+                BalanceLedger::logBudgetChange($employee->id, 'Wellness', $oldWellness, $newWellness, 'adjustment', null, 'Admin/personnel manual adjustment');
+            }
+            if ($this->balancesDiffer($oldSpl, $newSpl)) {
+                BalanceLedger::logBudgetChange($employee->id, 'SPL', $oldSpl, $newSpl, 'adjustment', null, 'Admin/personnel manual adjustment');
+            }
+            if ($this->balancesDiffer($oldCto, $newCto)) {
+                BalanceLedger::logBudgetChange($employee->id, 'CTO', $oldCto, $newCto, 'adjustment', null, 'Admin/personnel manual adjustment');
+            }
         });
 
         return $this->redirectToProfile($employee->id)->with('success', 'Employee balances updated successfully.');
@@ -152,7 +173,11 @@ class EmployeeProfileController extends Controller
     {
         $data = $request->validate([
             'employee_id' => ['required', 'integer', 'exists:employees,id'],
-            'date' => ['required', 'date'],
+            'items' => ['nullable', 'array'],
+            'items.*.date' => ['required_with:items', 'date'],
+            'items.*.hours' => ['nullable', 'integer', 'min:0'],
+            'items.*.undertime_minutes' => ['nullable', 'integer', 'min:0', 'max:60'],
+            'date' => ['nullable', 'date'],
             'hours' => ['nullable', 'integer', 'min:0'],
             'undertime_minutes' => ['nullable', 'integer', 'min:0', 'max:60'],
             'with_pay' => ['nullable'],
@@ -161,43 +186,69 @@ class EmployeeProfileController extends Controller
         $employee = Employee::query()->findOrFail((int) $data['employee_id']);
         $this->authorizeProfileAdminAction($employee);
 
-        $hours = (int) ($data['hours'] ?? 0);
-        $minutes = (int) ($data['undertime_minutes'] ?? 0);
-        if (($hours * 60) + $minutes <= 0) {
+        $items = $data['items'] ?? [];
+        if (empty($items) && !empty($data['date'])) {
+            $items = [[
+                'date' => $data['date'],
+                'hours' => $data['hours'] ?? 0,
+                'undertime_minutes' => $data['undertime_minutes'] ?? 0,
+            ]];
+        }
+
+        $validItems = [];
+        $totalDeduct = 0.0;
+        $totalMinutes = 0;
+        foreach ($items as $item) {
+            $hours = (int) ($item['hours'] ?? 0);
+            $minutes = (int) ($item['undertime_minutes'] ?? 0);
+            if (($hours * 60) + $minutes <= 0) {
+                continue;
+            }
+            $deduct = $this->trunc3(BalanceLedger::undertimeDaysFromChart($hours, $minutes));
+            $validItems[] = ['date' => (string) $item['date'], 'hours' => $hours, 'minutes' => $minutes, 'deduct' => $deduct];
+            $totalDeduct = $this->trunc3($totalDeduct + $deduct);
+            $totalMinutes += ($hours * 60) + $minutes;
+        }
+
+        if (empty($validItems) || $totalDeduct <= 0) {
             return $this->redirectToProfile($employee->id)->with('error', 'Undertime minutes required.');
         }
 
-        DB::transaction(function () use ($employee, $data, $hours, $minutes, $request) {
-            $deduct = $this->trunc3(BalanceLedger::undertimeDaysFromChart($hours, $minutes));
+        DB::transaction(function () use ($employee, $validItems, $totalDeduct, $totalMinutes, $request) {
             $oldAnnual = (float) $employee->annual_balance;
             $sickBalance = (float) $employee->sick_balance;
             $forceBalance = (float) $employee->force_balance;
-            $newAnnual = $this->trunc3(max(0, $oldAnnual - $deduct));
             $withPay = $request->boolean('with_pay');
+            $paidDeduct = min($oldAnnual, $totalDeduct);
+            $withoutPayDeduct = max(0.0, $totalDeduct - $paidDeduct);
+            $newAnnual = $this->trunc3(max(0, $oldAnnual - $paidDeduct));
 
             $employee->update(['annual_balance' => $newAnnual]);
 
-            $meta = 'UT_DEDUCT=' . number_format($deduct, 3, '.', '') .
+            $dates = collect($validItems)->map(fn ($row) => \Carbon\Carbon::parse($row['date'])->format('m/d'))->implode(', ');
+            $meta = 'UT_DEDUCT=' . number_format($totalDeduct, 3, '.', '') .
+                ';UT_WITH_PAY=' . number_format($paidDeduct, 3, '.', '') .
+                ';UT_WITHOUT_PAY=' . number_format($withoutPayDeduct, 3, '.', '') .
                 ';VAC_OLD=' . number_format($oldAnnual, 3, '.', '') .
                 ';VAC_NEW=' . number_format($newAnnual, 3, '.', '') .
                 ';VAC=' . number_format($newAnnual, 3, '.', '') .
                 ';SICK=' . number_format($sickBalance, 3, '.', '') .
                 ';FORCE=' . number_format($forceBalance, 3, '.', '') .
-                ';H=' . $hours .
-                ';M=' . $minutes;
+                ';TOTAL_MINUTES=' . $totalMinutes .
+                ';DATES=' . $dates;
 
             BalanceLedger::logBudgetChange(
                 $employee->id,
-                'Vacational',
+                'Vacation',
                 $oldAnnual,
                 $newAnnual,
-                $withPay ? 'undertime_paid' : 'undertime_unpaid',
+                $withPay && $withoutPayDeduct <= 0 ? 'undertime_paid' : 'undertime_unpaid',
                 null,
-                'Undertime ' . $hours . 'h ' . $minutes . 'm | ' . $meta,
-                (string) $data['date']
+                'Undertime dates: ' . $dates . ' | ' . $meta,
+                collect($validItems)->min('date')
             );
 
-            BalanceLedger::logLeaveBalanceChange($employee->id, -1 * $deduct, $withPay ? 'undertime_paid' : 'undertime_unpaid');
+            BalanceLedger::logLeaveBalanceChange($employee->id, -1 * $paidDeduct, $withPay && $withoutPayDeduct <= 0 ? 'undertime_paid' : 'undertime_unpaid');
         });
 
         return $this->redirectToProfile($employee->id)->with('success', 'Undertime recorded successfully.');
@@ -216,6 +267,8 @@ class EmployeeProfileController extends Controller
             'snapshot_annual_balance' => ['nullable', 'numeric', 'min:0'],
             'snapshot_sick_balance' => ['nullable', 'numeric', 'min:0'],
             'snapshot_force_balance' => ['nullable', 'numeric', 'min:0'],
+            'snapshot_wellness_balance' => ['nullable', 'numeric', 'min:0'],
+            'snapshot_spl_balance' => ['nullable', 'numeric', 'min:0'],
             'undertime_hours' => ['nullable', 'integer', 'min:0'],
             'undertime_minutes' => ['nullable', 'integer', 'min:0', 'max:60'],
             'undertime_with_pay' => ['nullable'],
@@ -265,6 +318,8 @@ class EmployeeProfileController extends Controller
             'annual_balance' => array_key_exists('snapshot_annual_balance', $data) && $data['snapshot_annual_balance'] !== null ? $this->trunc3((float) $data['snapshot_annual_balance']) : $this->trunc3((float) $employee->annual_balance),
             'sick_balance' => array_key_exists('snapshot_sick_balance', $data) && $data['snapshot_sick_balance'] !== null ? $this->trunc3((float) $data['snapshot_sick_balance']) : $this->trunc3((float) $employee->sick_balance),
             'force_balance' => array_key_exists('snapshot_force_balance', $data) && $data['snapshot_force_balance'] !== null ? $this->trunc3((float) $data['snapshot_force_balance']) : $this->trunc3((float) $employee->force_balance),
+            'wellness_balance' => array_key_exists('snapshot_wellness_balance', $data) && $data['snapshot_wellness_balance'] !== null ? $this->trunc3((float) $data['snapshot_wellness_balance']) : $this->trunc3((float) ($employee->wellness_balance ?? 5)),
+            'spl_balance' => array_key_exists('snapshot_spl_balance', $data) && $data['snapshot_spl_balance'] !== null ? $this->trunc3((float) $data['snapshot_spl_balance']) : $this->trunc3((float) ($employee->spl_balance ?? 3)),
         ];
     }
 
@@ -279,7 +334,7 @@ class EmployeeProfileController extends Controller
             $leave = LeaveRequest::query()->create([
                 'employee_id' => $employee->id,
                 'department_id' => $employee->department_id,
-                'leave_type' => 'Vacational Accrual Earned',
+                'leave_type' => 'Vacation Accrual Earned',
                 'leave_type_id' => 0,
                 'start_date' => $data['start_date'],
                 'end_date' => $data['end_date'],
@@ -296,7 +351,7 @@ class EmployeeProfileController extends Controller
 
             BalanceLedger::logBudgetChange(
                 $employee->id,
-                'Vacational Accrual Earned',
+                'Vacation Accrual Earned',
                 0,
                 0,
                 'earning',
@@ -331,7 +386,7 @@ class EmployeeProfileController extends Controller
 
             BalanceLedger::logBudgetChange(
                 $employee->id,
-                'Vacational',
+                'Vacation',
                 $oldAnnual,
                 $newAnnual,
                 $withPay ? 'undertime_paid' : 'undertime_unpaid',
@@ -438,7 +493,7 @@ class EmployeeProfileController extends Controller
         $filename = 'Leave History - '.trim($employee->fullName()).'.csv';
         return response()->streamDownload(function () use ($history) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Leave Type','Dates','Days','Status','Submitted','Vacational Bal','Sick Bal','Force Bal','Comments']);
+            fputcsv($out, ['Leave Type','Dates','Days','Status','Submitted','Vacation Bal','Sick Bal','Force Bal','Comments']);
             foreach ($history as $row) {
                 fputcsv($out, [
                     $row->leave_type_name,

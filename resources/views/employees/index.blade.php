@@ -108,6 +108,11 @@
                         'annual_balance' => $employee->annual_balance,
                         'sick_balance' => $employee->sick_balance,
                         'force_balance' => $employee->force_balance,
+                        'wellness_balance' => $employee->wellness_balance ?? 5,
+                        'spl_balance' => $employee->spl_balance ?? 3,
+                        'cto_balance' => $employee->cto_balance ?? 0,
+                        'cto_first_earned_at' => optional($employee->cto_first_earned_at)->format('Y-m-d'),
+                        'can_approve_leave_requests' => (int) ($employee->user?->can_approve_leave_requests ?? 0),
                         'profile_pic' => $employee->profile_pic,
                     ];
                     $imageUrl = $employee->profile_pic ? asset(ltrim(str_replace('../','',$employee->profile_pic), '/')) : null;
@@ -147,7 +152,7 @@
                         </div>
                         <div class="employee-balance-grid">
                             <div class="balance-chip">
-                                <span class="balance-label">Vacational</span>
+                                <span class="balance-label">Vacation</span>
                                 <span class="balance-value">{{ number_format((float) $employee->annual_balance, 3) }}</span>
                             </div>
                             <div class="balance-chip">
@@ -156,7 +161,19 @@
                             </div>
                             <div class="balance-chip">
                                 <span class="balance-label">Force</span>
-                                <span class="balance-value">{{ number_format((float) $employee->force_balance, 0) }}</span>
+                                <span class="balance-value">{{ number_format((float) $employee->force_balance, 3) }}</span>
+                            </div>
+                            <div class="balance-chip">
+                                <span class="balance-label">Wellness</span>
+                                <span class="balance-value">{{ number_format((float)($employee->wellness_balance ?? 5), 3) }}</span>
+                            </div>
+                            <div class="balance-chip">
+                                <span class="balance-label">SPL</span>
+                                <span class="balance-value">{{ number_format((float)($employee->spl_balance ?? 3), 3) }}</span>
+                            </div>
+                            <div class="balance-chip">
+                                <span class="balance-label">CTO</span>
+                                <span class="balance-value">{{ number_format((float)($employee->cto_balance ?? 0), 3) }}</span>
                             </div>
                         </div>
                     </div>
@@ -272,7 +289,7 @@
             btn.addEventListener('click', function(){
                 const data = JSON.parse(btn.getAttribute('data-payload'));
                 editForm.action = '{{ url('/manage-employees') }}/' + data.id + '?{{ http_build_query(request()->only('q','page')) }}';
-                ['email','first_name','middle_name','last_name','department_id','manager_id','role','position','salary','status','civil_status','entrance_to_duty','unit','gsis_policy_no','national_reference_card_no','annual_balance','sick_balance','force_balance','password'].forEach(key => setField('edit_'+key, data[key]));
+                ['email','first_name','middle_name','last_name','department_id','manager_id','role','position','salary','status','civil_status','entrance_to_duty','unit','gsis_policy_no','national_reference_card_no','annual_balance','sick_balance','force_balance','wellness_balance','spl_balance','cto_balance','cto_first_earned_at','can_approve_leave_requests','password'].forEach(key => setField('edit_'+key, data[key]));
                 setField('edit_is_active', data.is_active);
                 const previewName = ((data.first_name || '') + ' ' + (data.middle_name || '') + ' ' + (data.last_name || '')).replace(/\s+/g, ' ').trim() || 'Employee';
                 const dept = departments.find(d => String(d.id) === String(data.department_id || ''));
@@ -407,7 +424,7 @@
         @endphp
         const forcedData = @json($payload);
         editForm.action = '{{ url('/manage-employees') }}/' + forcedData.id;
-        ['email','first_name','middle_name','last_name','department_id','manager_id','role','position','salary','status','civil_status','entrance_to_duty','unit','gsis_policy_no','national_reference_card_no','annual_balance','sick_balance','force_balance','password'].forEach(key => setField('edit_'+key, forcedData[key]));
+        ['email','first_name','middle_name','last_name','department_id','manager_id','role','position','salary','status','civil_status','entrance_to_duty','unit','gsis_policy_no','national_reference_card_no','annual_balance','sick_balance','force_balance','wellness_balance','spl_balance','cto_balance','cto_first_earned_at','can_approve_leave_requests','password'].forEach(key => setField('edit_'+key, forcedData[key]));
         setField('edit_is_active', forcedData.is_active);
         document.getElementById('editPreviewName').textContent = ((forcedData.first_name || '') + ' ' + (forcedData.middle_name || '') + ' ' + (forcedData.last_name || '')).replace(/\s+/g, ' ').trim();
         document.getElementById('editPreviewMeta').textContent = (departments.find(d => String(d.id) === String(forcedData.department_id || ''))?.name || 'No department') + ' · ' + (forcedData.role || 'employee');

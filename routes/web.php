@@ -88,6 +88,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/manage-accruals', [AccrualManagementController::class, 'index'])->name('manage-accruals');
     Route::post('/manage-accruals/manual', [AccrualManagementController::class, 'storeManual'])->name('manage-accruals.manual');
+    Route::post('/manage-accruals/cto', [AccrualManagementController::class, 'storeCto'])->name('manage-accruals.cto');
     Route::post('/manage-accruals/bulk', [AccrualManagementController::class, 'storeBulk'])->name('manage-accruals.bulk');
     Route::post('/manage-accruals/automatic', [AccrualManagementController::class, 'updateAutomatic'])->name('manage-accruals.automatic');
 

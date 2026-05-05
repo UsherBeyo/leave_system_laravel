@@ -56,7 +56,7 @@ class LeaveWorkflowService
 
         $this->guardBalance($employee, $leaveType, $policy, $days, !empty($details['force_balance_only']));
 
-        $departmentHeadUserId = $this->resolveDepartmentHeadUserId($employee);
+        $departmentHeadUserId = $this->selectedApproverUserId($payload) ?: $this->resolveDepartmentHeadUserId($employee);
         $workflowStatus = 'pending_department_head'; $departmentHeadApprovedAt = null;
         if (!$departmentHeadUserId || in_array($applicantRole, ['manager','department_head','admin'], true) || ($applicantUserId && $departmentHeadUserId === $applicantUserId)) {
             $workflowStatus = 'pending_personnel'; $departmentHeadApprovedAt = now(); if (in_array($applicantRole, ['manager','department_head','admin'], true)) $departmentHeadUserId = $applicantUserId ?: $departmentHeadUserId;
@@ -120,12 +120,13 @@ class LeaveWorkflowService
             $hasApprovedWithPay = array_key_exists('approved_with_pay', $options) && $options['approved_with_pay'] !== null && $options['approved_with_pay'] !== '';
             $hasApprovedWithoutPay = array_key_exists('approved_without_pay', $options) && $options['approved_without_pay'] !== null && $options['approved_without_pay'] !== '';
             $hasDeductDays = array_key_exists('deduct_days', $options) && $options['deduct_days'] !== null && $options['deduct_days'] !== '';
-            $daysWithPay = $hasApprovedWithPay ? (float) $options['approved_with_pay'] : $days;
-            $daysWithoutPay = $hasApprovedWithoutPay ? (float) $options['approved_without_pay'] : 0.0;
-            $deductDays = $hasDeductDays ? (float) $options['deduct_days'] : $days;
+            $availableBalance = $this->availableBalanceForPolicy($employee, $typeKey, $forceOnly);
+            $daysWithPay = $hasApprovedWithPay ? (float) $options['approved_with_pay'] : min($days, $availableBalance);
+            $daysWithoutPay = $hasApprovedWithoutPay ? (float) $options['approved_without_pay'] : max(0.0, $days - $daysWithPay);
+            $deductDays = $hasDeductDays ? (float) $options['deduct_days'] : $daysWithPay;
             $isLateSick=$typeKey==='sick leave' && $this->isLateSickFiling((string)$leave->filing_date,(string)$leave->end_date); if($isLateSick && !$hasDeductDays){ $daysWithPay=0.0; $daysWithoutPay=$days; $deductDays=0.0; }
             if (empty($policy['deduct_balance'])) { $daysWithPay=$days; $daysWithoutPay=0.0; $deductDays=0.0; }
-            $oldAnnual=(float)$employee->annual_balance; $oldSick=(float)$employee->sick_balance; $oldForce=(float)$employee->force_balance; $vacLess=0.0; $sickLess=0.0;
+            $oldAnnual=(float)$employee->annual_balance; $oldSick=(float)$employee->sick_balance; $oldForce=(float)$employee->force_balance; $oldWellness=(float)($employee->wellness_balance ?? 0); $oldSpl=(float)($employee->spl_balance ?? 0); $vacLess=0.0; $sickLess=0.0;
             if (!empty($policy['deduct_balance']) && $deductDays > 0) {
                 if ($typeKey === 'mandatory/forced leave') {
                     $employee->force_balance = max(0, (float) $employee->force_balance - $deductDays);
@@ -134,11 +135,16 @@ class LeaveWorkflowService
                         $this->logLeaveBalanceChange($employee->id, -1 * $deductDays, 'deduction_force_leave_only', $leave->id);
                     } else {
                         $employee->annual_balance = max(0, (float) $employee->annual_balance - $deductDays);
-                        $this->logBudgetChange($employee->id, $typeName, $oldAnnual, $employee->annual_balance, 'deduction', $leave->id, 'Leave approved (mandatory/forced leave dual deduction - vacational side)');
+                        $vacLess = $deductDays;
+                        $this->logBudgetChange($employee->id, $typeName, $oldAnnual, $employee->annual_balance, 'deduction', $leave->id, 'Leave approved (mandatory/forced leave dual deduction - vacation side)');
                         $this->logLeaveBalanceChange($employee->id, -1 * $deductDays, 'deduction_force_leave_dual', $leave->id);
                     }
                 } elseif ($typeKey === 'sick leave') {
                     $employee->sick_balance = max(0, (float) $employee->sick_balance - $deductDays); $sickLess = $deductDays; $this->logBudgetChange($employee->id, $typeName, $oldSick, $employee->sick_balance, 'deduction', $leave->id, 'Leave approved');
+                } elseif ($typeKey === 'wellness leave') {
+                    $employee->wellness_balance = max(0, (float) ($employee->wellness_balance ?? 0) - $deductDays); $this->logBudgetChange($employee->id, $typeName, $oldWellness, (float)$employee->wellness_balance, 'deduction', $leave->id, 'Leave approved (wellness balance)');
+                } elseif ($typeKey === 'special privilege leave') {
+                    $employee->spl_balance = max(0, (float) ($employee->spl_balance ?? 0) - $deductDays); $this->logBudgetChange($employee->id, $typeName, $oldSpl, (float)$employee->spl_balance, 'deduction', $leave->id, 'Leave approved (SPL balance)');
                 } else {
                     $employee->annual_balance = max(0, (float) $employee->annual_balance - $deductDays); $vacLess = $deductDays; $this->logBudgetChange($employee->id, $typeName, $oldAnnual, $employee->annual_balance, 'deduction', $leave->id, 'Leave approved');
                 }
@@ -249,7 +255,7 @@ class LeaveWorkflowService
                         $after['annual'] = max(0, $liveAnnual - $deductDays);
                         $deductions['annual'] = $deductDays;
                         $highlight[] = 'annual';
-                        $notes[] = 'Standard force leave deducts from both Force and Vacational balances.';
+                        $notes[] = 'Standard force leave deducts from both Force and Vacation balances.';
                     }
                 } elseif ($typeKey === 'sick leave') {
                     $after['sick'] = max(0, $liveSick - $deductDays);
@@ -451,10 +457,34 @@ class LeaveWorkflowService
 
     private function guardBalance(Employee $employee, LeaveType $leaveType, array $policy, float $days, bool $forceOnly): void
     {
-        if (empty($policy['deduct_balance'])) return; $typeKey=$this->policyService->normalizeLeaveTypeKey($leaveType->name);
-        if ($typeKey === 'mandatory/forced leave') { if((float)$employee->force_balance < $days) throw new RuntimeException('Insufficient '.$leaveType->name.' leave balance.'); if(!$forceOnly && (float)$employee->annual_balance < $days) throw new RuntimeException('Insufficient '.$leaveType->name.' leave balance.'); return; }
-        if ($typeKey === 'sick leave' && (float)$employee->sick_balance < $days) throw new RuntimeException('Insufficient '.$leaveType->name.' leave balance.');
-        if ($typeKey !== 'sick leave' && (float)$employee->annual_balance < $days) throw new RuntimeException('Insufficient '.$leaveType->name.' leave balance.');
+        // Insufficient balance no longer blocks filing. Personnel final approval splits the request into with-pay and without-pay days.
+        return;
+    }
+
+    private function selectedApproverUserId(array $payload): ?int
+    {
+        $userId = (int) ($payload['approver_user_id'] ?? 0);
+        if ($userId <= 0) {
+            return null;
+        }
+
+        $user = User::query()->whereKey($userId)->where('is_active', 1)->first();
+        if (!$user || !$user->canApproveLeaveRequests()) {
+            throw new RuntimeException('Selected approver is not allowed to approve leave requests.');
+        }
+
+        return $userId;
+    }
+
+    private function availableBalanceForPolicy(Employee $employee, string $typeKey, bool $forceOnly): float
+    {
+        return match ($typeKey) {
+            'sick leave' => max(0.0, (float) $employee->sick_balance),
+            'mandatory/forced leave' => $forceOnly ? max(0.0, (float) $employee->force_balance) : max(0.0, min((float) $employee->force_balance, (float) $employee->annual_balance)),
+            'wellness leave' => max(0.0, (float) ($employee->wellness_balance ?? 0)),
+            'special privilege leave' => max(0.0, (float) ($employee->spl_balance ?? 0)),
+            default => max(0.0, (float) $employee->annual_balance),
+        };
     }
 
     private function resolveDepartmentHeadUserId(Employee $employee): ?int

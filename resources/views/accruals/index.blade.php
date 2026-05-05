@@ -20,7 +20,7 @@
         <div class="auto-accrual-main">
             <span class="auto-accrual-kicker">Automatic schedule</span>
             <h3>Automatic Month-End Accrual</h3>
-            <p class="accrual-description">When activated, the system adds the configured amount to every employee's <strong>Vacational</strong> and <strong>Sick</strong> balances at <strong>11:59 PM on the last day of each month</strong>. Manual accrual stays available.</p>
+            <p class="accrual-description">When activated, the system adds the configured amount to every employee's <strong>Vacation</strong> and <strong>Sick</strong> balances at <strong>11:59 PM on the last day of each month</strong>. Manual accrual stays available.</p>
             <div class="auto-accrual-status-row">
                 <span class="auto-accrual-badge {{ $autoAccrualEnabled ? 'active' : 'inactive' }}">{{ $autoAccrualEnabled ? 'Active' : 'Inactive' }}</span>
                 <span>Next scheduled check: <strong>{{ $autoAccrualNextRun->format('F j, Y g:i A') }}</strong></span>
@@ -51,7 +51,7 @@
     <div class="accrual-card accrual-bulk-launcher">
         <div class="accrual-bulk-copy">
             <h3>Bulk Accrual for All Employees</h3>
-            <p class="accrual-description">Open a focused modal to add the same accrual amount to both <strong>Vacational</strong> and <strong>Sick</strong> balances of <strong>all employees</strong> without cluttering the page.</p>
+            <p class="accrual-description">Open a focused modal to add the same accrual amount to both <strong>Vacation</strong> and <strong>Sick</strong> balances of <strong>all employees</strong> without cluttering the page.</p>
             <div class="accrual-note">
                 <span class="accrual-note-icon">⚠</span>
                 <span><strong>Note:</strong> Force Leave is not affected here.</span>
@@ -60,7 +60,7 @@
         <div class="accrual-bulk-highlights">
             <div class="accrual-highlight"><span class="accrual-highlight-label">Employees Affected</span><strong>{{ $totalEmployees }}</strong></div>
             <div class="accrual-highlight"><span class="accrual-highlight-label">Default Amount</span><strong>1.250 days</strong></div>
-            <div class="accrual-highlight"><span class="accrual-highlight-label">Balance Impact</span><strong>Vacational + Sick</strong></div>
+            <div class="accrual-highlight"><span class="accrual-highlight-label">Balance Impact</span><strong>Vacation + Sick</strong></div>
         </div>
         <div class="accrual-bulk-launcher-actions">
             <button type="button" class="btn btn-primary accrual-bulk-trigger" id="openBulkAccrualModal">Open Bulk Accrual</button>
@@ -91,6 +91,34 @@
                     <input type="month" name="month" value="{{ now()->format('Y-m') }}" required>
                 </div>
                 <div class="accrual-form-actions"><button type="submit" class="btn btn-action-green ">Record Accrual</button></div>
+            </form>
+        </div>
+
+
+
+        <div class="manual-accrual-card">
+            <h3>Record CTO Earning</h3>
+            <p class="accrual-description">Use this to add earned CTO credits. CTO is capped at <strong>15.000 days</strong> and expires one year from the employee's first CTO earning date.</p>
+            <form method="POST" action="{{ route('manage-accruals.cto') }}" class="accrual-manual-form">
+                @csrf
+                <div class="accrual-form-item">
+                    <label>Employee</label>
+                    <select name="employee_id" required>
+                        <option value="">-- Select Employee --</option>
+                        @foreach($employees as $employee)
+                            <option value="{{ $employee->id }}">{{ $employee->fullName() }} (CTO: {{ number_format((float)($employee->cto_balance ?? 0), 3) }} | First earned: {{ $employee->cto_first_earned_at ? \Carbon\Carbon::parse($employee->cto_first_earned_at)->format('Y-m-d') : 'None' }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="accrual-form-item">
+                    <label>CTO Amount (days)</label>
+                    <input type="number" step="0.001" min="0.001" max="15" name="amount" required>
+                </div>
+                <div class="accrual-form-item">
+                    <label>Date Earned</label>
+                    <input type="date" name="earned_at" value="{{ now()->toDateString() }}" required>
+                </div>
+                <div class="accrual-form-actions"><button type="submit" class="btn btn-action-green">Record CTO</button></div>
             </form>
         </div>
 
@@ -137,7 +165,7 @@
             </div>
             <div class="accrual-bulk-summary-grid">
                 <div class="accrual-highlight"><span class="accrual-highlight-label">Employees Affected</span><strong>{{ $totalEmployees }} employee(s)</strong></div>
-                <div class="accrual-highlight"><span class="accrual-highlight-label">Changes Applied To</span><strong>Vacational + Sick</strong></div>
+                <div class="accrual-highlight"><span class="accrual-highlight-label">Changes Applied To</span><strong>Vacation + Sick</strong></div>
                 <div class="accrual-highlight"><span class="accrual-highlight-label">Not Included</span><strong>Force Leave</strong></div>
             </div>
             <form method="POST" action="{{ route('manage-accruals.bulk') }}" id="bulkAccrualForm" class="accrual-form-grid accrual-bulk-modal-form">
@@ -172,7 +200,7 @@
     [closeBulkModalBtn,cancelBulkModalBtn].forEach(function(btn){ if(btn){ btn.addEventListener('click', closeBulkAccrualModal); } });
     if(bulkModal){ bulkModal.addEventListener('click', function(e){ if(e.target===bulkModal){closeBulkAccrualModal();} }); }
     document.addEventListener('keydown', function(e){ if(e.key==='Escape' && bulkModal && bulkModal.classList.contains('open')){ closeBulkAccrualModal(); } });
-    if(bulkAccrualForm){ bulkAccrualForm.addEventListener('submit', function(e){ var amount=document.getElementById('bulk_amount').value||'1.250'; var month=document.getElementById('bulk_month').value||''; if(!confirm('Are you sure you want to add ' + amount + ' day(s) to BOTH Vacational and Sick balances of ALL employees?')){ e.preventDefault(); return; } if(!confirm('This will affect all employees and write accrual history logs for month ' + month + '. Continue?')){ e.preventDefault(); return; } if(!confirm('Final confirmation: this can be done even if it is NOT yet the end of the month. Force Leave will NOT be changed. Do you want to proceed?')){ e.preventDefault(); } }); }
+    if(bulkAccrualForm){ bulkAccrualForm.addEventListener('submit', function(e){ var amount=document.getElementById('bulk_amount').value||'1.250'; var month=document.getElementById('bulk_month').value||''; if(!confirm('Are you sure you want to add ' + amount + ' day(s) to BOTH Vacation and Sick balances of ALL employees?')){ e.preventDefault(); return; } if(!confirm('This will affect all employees and write accrual history logs for month ' + month + '. Continue?')){ e.preventDefault(); return; } if(!confirm('Final confirmation: this can be done even if it is NOT yet the end of the month. Force Leave will NOT be changed. Do you want to proceed?')){ e.preventDefault(); } }); }
     var autoAccrualForm = document.getElementById('autoAccrualForm');
     var autoAccrualMode = document.getElementById('auto_accrual_mode');
     var disableAutoAccrualBtn = document.getElementById('disableAutoAccrualBtn');

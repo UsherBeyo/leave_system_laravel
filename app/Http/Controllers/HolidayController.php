@@ -44,12 +44,14 @@ class HolidayController extends Controller
             'date' => ['required', 'date', 'unique:holidays,holiday_date'],
             'description' => ['nullable', 'string', 'max:255'],
             'type' => ['required', 'string', 'max:50'],
+            'is_recurring' => ['nullable', 'boolean'],
         ]);
 
         Holiday::query()->create([
             'holiday_date' => $data['date'],
             'description' => trim((string) ($data['description'] ?? '')),
             'type' => trim((string) $data['type']),
+            'is_recurring' => $request->boolean('is_recurring'),
         ]);
 
         return redirect()->route('holidays')->with('success', 'Holiday added.');
@@ -63,12 +65,14 @@ class HolidayController extends Controller
             'date' => ['required', 'date', Rule::unique('holidays', 'holiday_date')->ignore($holiday->id)],
             'description' => ['nullable', 'string', 'max:255'],
             'type' => ['required', 'string', 'max:50'],
+            'is_recurring' => ['nullable', 'boolean'],
         ]);
 
         $holiday->update([
             'holiday_date' => $data['date'],
             'description' => trim((string) ($data['description'] ?? '')),
             'type' => trim((string) $data['type']),
+            'is_recurring' => $request->boolean('is_recurring'),
         ]);
 
         return redirect()->route('holidays', request()->only('q', 'page'))->with('success', 'Holiday updated.');

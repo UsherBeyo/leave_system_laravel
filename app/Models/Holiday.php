@@ -16,9 +16,11 @@ class Holiday extends Model
         'holiday_date',
         'description',
         'type',
+        'is_recurring',
     ];
 
     protected $casts = [
         'holiday_date' => 'date',
+        'is_recurring' => 'boolean',
     ];
 }

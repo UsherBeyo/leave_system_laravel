@@ -92,7 +92,7 @@
     </div>
 
     <div class="field">
-        <label for="{{ $prefix }}annual_balance">Vacational Balance</label>
+        <label for="{{ $prefix }}annual_balance">Vacation Balance</label>
         <input class="form-control" type="number" step="0.001" id="{{ $prefix }}annual_balance" name="annual_balance" value="{{ $mode === 'create' ? '0.000' : '' }}">
     </div>
     <div class="field">
@@ -101,7 +101,30 @@
     </div>
     <div class="field">
         <label for="{{ $prefix }}force_balance">Force Balance</label>
-        <input class="form-control" type="number" step="1" id="{{ $prefix }}force_balance" name="force_balance" value="{{ $mode === 'create' ? '5' : '' }}">
+        <input class="form-control" type="number" step="0.001" id="{{ $prefix }}force_balance" name="force_balance" value="{{ $mode === 'create' ? '5.000' : '' }}">
+    </div>
+    <div class="field">
+        <label for="{{ $prefix }}wellness_balance">Wellness Balance</label>
+        <input class="form-control" type="number" step="0.001" id="{{ $prefix }}wellness_balance" name="wellness_balance" value="{{ $mode === 'create' ? '5.000' : '' }}">
+    </div>
+    <div class="field">
+        <label for="{{ $prefix }}spl_balance">SPL Balance</label>
+        <input class="form-control" type="number" step="0.001" id="{{ $prefix }}spl_balance" name="spl_balance" value="{{ $mode === 'create' ? '3.000' : '' }}">
+    </div>
+    <div class="field">
+        <label for="{{ $prefix }}cto_balance">CTO Balance</label>
+        <input class="form-control" type="number" step="0.001" max="15" id="{{ $prefix }}cto_balance" name="cto_balance" value="{{ $mode === 'create' ? '0.000' : '' }}">
+    </div>
+    <div class="field">
+        <label for="{{ $prefix }}cto_first_earned_at">CTO First Earned Date</label>
+        <input class="form-control" type="date" id="{{ $prefix }}cto_first_earned_at" name="cto_first_earned_at">
+    </div>
+
+    <div class="field full">
+        <label class="inline-check" style="font-weight:600;">
+            <input type="checkbox" id="{{ $prefix }}can_approve_leave_requests" name="can_approve_leave_requests" value="1">
+            Can approve leave requests / appear as approver-signatory option
+        </label>
     </div>
 
     <div class="field full">

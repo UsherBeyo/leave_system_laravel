@@ -76,6 +76,7 @@ class EmployeeManagementController extends Controller
                 'password' => $data['password'],
                 'role' => $data['role'],
                 'is_active' => $data['is_active'],
+                'can_approve_leave_requests' => $data['can_approve_leave_requests'],
                 'activation_token' => null,
                 'created_at' => now(),
             ]);
@@ -102,6 +103,10 @@ class EmployeeManagementController extends Controller
                 'annual_balance' => $data['annual_balance'],
                 'sick_balance' => $data['sick_balance'],
                 'force_balance' => $data['force_balance'],
+                'wellness_balance' => $data['wellness_balance'],
+                'spl_balance' => $data['spl_balance'],
+                'cto_balance' => $data['cto_balance'],
+                'cto_first_earned_at' => $data['cto_first_earned_at'],
                 'profile_pic' => $profilePic,
             ]);
 
@@ -120,12 +125,16 @@ class EmployeeManagementController extends Controller
             $oldAnnual = (float) $employee->annual_balance;
             $oldSick = (float) $employee->sick_balance;
             $oldForce = (float) $employee->force_balance;
+            $oldWellness = (float) ($employee->wellness_balance ?? 0);
+            $oldSpl = (float) ($employee->spl_balance ?? 0);
+            $oldCto = (float) ($employee->cto_balance ?? 0);
 
             $user = $employee->user;
             if ($user) {
                 $user->email = $data['email'];
                 $user->role = $data['role'];
                 $user->is_active = $data['is_active'];
+                $user->can_approve_leave_requests = $data['can_approve_leave_requests'];
                 if (!empty($data['password'])) {
                     $user->password = $data['password'];
                 }
@@ -153,6 +162,10 @@ class EmployeeManagementController extends Controller
                 'annual_balance' => $data['annual_balance'],
                 'sick_balance' => $data['sick_balance'],
                 'force_balance' => $data['force_balance'],
+                'wellness_balance' => $data['wellness_balance'],
+                'spl_balance' => $data['spl_balance'],
+                'cto_balance' => $data['cto_balance'],
+                'cto_first_earned_at' => $data['cto_first_earned_at'],
                 'profile_pic' => $profilePic,
             ]);
 
@@ -166,6 +179,18 @@ class EmployeeManagementController extends Controller
 
             if ($this->balancesDiffer($oldForce, (float) $data['force_balance'])) {
                 BalanceLedger::logBudgetChange($employee->id, 'Force', $oldForce, (float) $data['force_balance'], 'adjustment', null, 'Admin/personnel manual adjustment');
+            }
+
+            if ($this->balancesDiffer($oldWellness, (float) $data['wellness_balance'])) {
+                BalanceLedger::logBudgetChange($employee->id, 'Wellness', $oldWellness, (float) $data['wellness_balance'], 'adjustment', null, 'Admin/personnel manual adjustment');
+            }
+
+            if ($this->balancesDiffer($oldSpl, (float) $data['spl_balance'])) {
+                BalanceLedger::logBudgetChange($employee->id, 'SPL', $oldSpl, (float) $data['spl_balance'], 'adjustment', null, 'Admin/personnel manual adjustment');
+            }
+
+            if ($this->balancesDiffer($oldCto, (float) $data['cto_balance'])) {
+                BalanceLedger::logBudgetChange($employee->id, 'CTO', $oldCto, (float) $data['cto_balance'], 'adjustment', null, 'Admin/personnel manual adjustment');
             }
 
             $this->syncDepartmentHeadAssignment($employee->fresh(), $data['role'], $data['department_id']);
@@ -195,6 +220,11 @@ class EmployeeManagementController extends Controller
             'annual_balance' => ['nullable', 'numeric'],
             'sick_balance' => ['nullable', 'numeric'],
             'force_balance' => ['nullable', 'numeric'],
+            'wellness_balance' => ['nullable', 'numeric', 'min:0'],
+            'spl_balance' => ['nullable', 'numeric', 'min:0'],
+            'cto_balance' => ['nullable', 'numeric', 'min:0', 'max:15'],
+            'cto_first_earned_at' => ['nullable', 'date'],
+            'can_approve_leave_requests' => ['nullable', 'boolean'],
             'profile_pic' => ['nullable', 'image', 'max:2048'],
             'is_active' => ['nullable', 'boolean'],
         ];
@@ -207,6 +237,7 @@ class EmployeeManagementController extends Controller
 
         $data = $request->validate($rules);
         $data['is_active'] = $request->boolean('is_active', true);
+        $data['can_approve_leave_requests'] = $request->boolean('can_approve_leave_requests') || in_array((string) ($data['role'] ?? ''), ['admin', 'manager', 'department_head'], true);
         $data['department_id'] = $data['department_id'] ?: null;
         $data['manager_id'] = $data['manager_id'] ?: null;
         $data['middle_name'] = $this->nullableString($data['middle_name'] ?? null);
@@ -219,7 +250,11 @@ class EmployeeManagementController extends Controller
         $data['salary'] = $data['salary'] === null ? null : (float) $data['salary'];
         $data['annual_balance'] = isset($data['annual_balance']) ? round((float) $data['annual_balance'], 3) : 0.0;
         $data['sick_balance'] = isset($data['sick_balance']) ? round((float) $data['sick_balance'], 3) : 0.0;
-        $data['force_balance'] = isset($data['force_balance']) ? (int) round((float) $data['force_balance']) : 5;
+        $data['force_balance'] = isset($data['force_balance']) ? round((float) $data['force_balance'], 3) : 5.0;
+        $data['wellness_balance'] = isset($data['wellness_balance']) ? round((float) $data['wellness_balance'], 3) : 5.0;
+        $data['spl_balance'] = isset($data['spl_balance']) ? round((float) $data['spl_balance'], 3) : 3.0;
+        $data['cto_balance'] = min(15.0, isset($data['cto_balance']) ? round((float) $data['cto_balance'], 3) : 0.0);
+        $data['cto_first_earned_at'] = $this->nullableString($data['cto_first_earned_at'] ?? null);
         return $data;
     }
 
